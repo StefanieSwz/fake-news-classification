@@ -4,6 +4,8 @@
     <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" />
 </a>
 
+MLOps Project of Tobias Brock, Anne Gritto und Stefanie Schwarz.
+
 This project is part of the fullfilment for the lecture "ML Operations" from LMU and covers the whole deployment lifecycle of a deep learning project. Here we deploy a model for fake news classification.
 
 ## Project Description: Fake News Classifier
