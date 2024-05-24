@@ -16,13 +16,13 @@ The Fake News Classifier project aims to equip students in the ML Operations (ML
 
 ### Framework and Integration
 
-We will use PyTorch in combination with Hugging Face's Transformers library. PyTorch is a popular deep learning framework known for its flexibility and ease of use. The Transformers library provides pre-trained models and APIs for implementing transformer architectures like BERT (Bidirectional Encoder Representations from Transformers) and SBERT (Sentence-BERT), which are effective for Natural Language Processing (NLP) tasks.
+For the classification task we use PyTorch in combination with Hugging Face's Transformers library. PyTorch is a popular deep learning framework known for its flexibility and ease of use. The Transformers library provides pre-trained models and APIs for implementing transformer architectures like BERT (Bidirectional Encoder Representations from Transformers) and SBERT (Sentence-BERT), which are effective for Natural Language Processing (NLP) tasks.
 
-To integrate these frameworks, we will create a conda environment to manage dependencies and ensure compatibility. We will install PyTorch, Transformers, and other necessary packages using pip. The project structure will include scripts for data preprocessing, model training, and evaluation.
+To integrate these frameworks, a conda environment is used to manage dependencies and ensure compatibility. Necessary packages like PyTorch, Transformers, and others are installed using pip. The project structure includes scripts for data preprocessing, model training, and evaluation.
 
 ### Data
 
-The project will use the [WELFake dataset](https://www.kaggle.com/datasets/saurabhshahane/fake-news-classification/data) from Kaggle. This dataset contains 72,134 news articles, with 35,028 labeled as real and 37,106 as fake. It combines four popular news datasets (Kaggle, McIntire, Reuters, BuzzFeed Political) to prevent over-fitting and provide a larger corpus for training.
+For the project, the [WELFake dataset](https://www.kaggle.com/datasets/saurabhshahane/fake-news-classification/data) from Kaggle is used. This dataset contains 72,134 news articles, with 35,028 labeled as real and 37,106 as fake. It combines four popular news datasets (Kaggle, McIntire, Reuters, BuzzFeed Political) to prevent over-fitting and provide a larger corpus for training.
 
 The dataset includes:
 1. **Serial Number**: A unique identifier for each entry.
@@ -32,7 +32,7 @@ The dataset includes:
 
 ### Models
 
-We will focus on transformer-based models, specifically BERT and SBERT:
+We focus on transformer-based models, specifically BERT and SBERT:
 1. **DistilBERT**: Distilled version of BERT without fine-tuning on the training data should serve as baseline model.
    
 2. **BERT**: BERT is pre-trained on a large corpus and we will further fine-tune the model for our specific tasks of fake news classification. Its contextual embeddings will help improve the classifier's accuracy in distinguishing real and fake news.
