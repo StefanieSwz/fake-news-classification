@@ -1,9 +1,11 @@
 import os
+
 import pandas as pd
-import torch
 from sklearn.model_selection import train_test_split
+import torch
+from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
 from transformers import BertTokenizerFast
-from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
+
 
 class DataPreprocessor:
     """
@@ -32,7 +34,7 @@ class DataPreprocessor:
         """
         self.data_dir = data_dir
         self.max_length = max_length
-        self.tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased')
+        self.tokenizer = BertTokenizerFast.from_pretrained("bert-base-uncased")
 
     def load_data(self):
         """
@@ -43,7 +45,7 @@ class DataPreprocessor:
         pd.DataFrame
             DataFrame containing the dataset.
         """
-        data = pd.read_csv(os.path.join(self.data_dir, 'WELFake_Dataset.csv'))
+        data = pd.read_csv(os.path.join(self.data_dir, "WELFake_Dataset.csv"))
         return data
 
     def preprocess_data(self, data):
@@ -61,7 +63,7 @@ class DataPreprocessor:
             DataFrame containing the preprocessed data with labels.
         """
         # Assuming the 'label' column indicates 0 for fake news and 1 for real news
-        data['label'] = data['label'].astype(int)
+        data["label"] = data["label"].astype(int)
         return data
 
     def split_data(self, data):
@@ -89,16 +91,24 @@ class DataPreprocessor:
             Test labels.
         """
         train_text, temp_text, train_labels, temp_labels = train_test_split(
-            data['title'], data['label'], random_state=2018, test_size=0.3, stratify=data['label']
+            data["title"],
+            data["label"],
+            random_state=2018,
+            test_size=0.3,
+            stratify=data["label"],
         )
         val_text, test_text, val_labels, test_labels = train_test_split(
-            temp_text, temp_labels, random_state=2018, test_size=0.5, stratify=temp_labels
+            temp_text,
+            temp_labels,
+            random_state=2018,
+            test_size=0.5,
+            stratify=temp_labels,
         )
 
         # Check for NaNs and ensure all entries are strings
-        train_text = train_text.fillna('').apply(str).tolist()
-        val_text = val_text.fillna('').apply(str).tolist()
-        test_text = test_text.fillna('').apply(str).tolist()
+        train_text = train_text.fillna("").apply(str).tolist()
+        val_text = val_text.fillna("").apply(str).tolist()
+        test_text = test_text.fillna("").apply(str).tolist()
         train_labels = train_labels.tolist()
         val_labels = val_labels.tolist()
         test_labels = test_labels.tolist()
@@ -120,10 +130,7 @@ class DataPreprocessor:
             A dictionary containing input IDs and attention masks.
         """
         tokens = self.tokenizer.batch_encode_plus(
-            texts,
-            max_length=self.max_length,
-            padding='max_length',
-            truncation=True
+            texts, max_length=self.max_length, padding="max_length", truncation=True
         )
         return tokens
 
@@ -147,12 +154,24 @@ class DataPreprocessor:
         torch.Tensor
             Tensor of labels.
         """
-        seq = torch.tensor(tokens['input_ids'])
-        mask = torch.tensor(tokens['attention_mask'])
+        seq = torch.tensor(tokens["input_ids"])
+        mask = torch.tensor(tokens["attention_mask"])
         y = torch.tensor(labels)
         return seq, mask, y
 
-    def create_dataloaders(self, train_seq, train_mask, train_y, val_seq, val_mask, val_y, test_seq, test_mask, test_y, batch_size):
+    def create_dataloaders(
+        self,
+        train_seq,
+        train_mask,
+        train_y,
+        val_seq,
+        val_mask,
+        val_y,
+        test_seq,
+        test_mask,
+        test_y,
+        batch_size,
+    ):
         """
         Creates DataLoader objects for training, validation, and test sets.
 
@@ -190,15 +209,21 @@ class DataPreprocessor:
         """
         train_data = TensorDataset(train_seq, train_mask, train_y)
         train_sampler = RandomSampler(train_data)
-        train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=batch_size)
+        train_dataloader = DataLoader(
+            train_data, sampler=train_sampler, batch_size=batch_size
+        )
 
         val_data = TensorDataset(val_seq, val_mask, val_y)
         val_sampler = SequentialSampler(val_data)
-        val_dataloader = DataLoader(val_data, sampler=val_sampler, batch_size=batch_size)
+        val_dataloader = DataLoader(
+            val_data, sampler=val_sampler, batch_size=batch_size
+        )
 
         test_data = TensorDataset(test_seq, test_mask, test_y)
         test_sampler = SequentialSampler(test_data)
-        test_dataloader = DataLoader(test_data, sampler=test_sampler, batch_size=batch_size)
+        test_dataloader = DataLoader(
+            test_data, sampler=test_sampler, batch_size=batch_size
+        )
 
         return train_dataloader, val_dataloader, test_dataloader
 
@@ -222,7 +247,9 @@ class DataPreprocessor:
         """
         data = self.load_data()
         data = self.preprocess_data(data)
-        train_text, val_text, test_text, train_labels, val_labels, test_labels = self.split_data(data)
+        train_text, val_text, test_text, train_labels, val_labels, test_labels = (
+            self.split_data(data)
+        )
         tokens_train = self.tokenize_data(train_text)
         tokens_val = self.tokenize_data(val_text)
         tokens_test = self.tokenize_data(test_text)
@@ -231,4 +258,15 @@ class DataPreprocessor:
         val_seq, val_mask, val_y = self.create_tensors(tokens_val, val_labels)
         test_seq, test_mask, test_y = self.create_tensors(tokens_test, test_labels)
 
-        return self.create_dataloaders(train_seq, train_mask, train_y, val_seq, val_mask, val_y, test_seq, test_mask, test_y, batch_size)
+        return self.create_dataloaders(
+            train_seq,
+            train_mask,
+            train_y,
+            val_seq,
+            val_mask,
+            val_y,
+            test_seq,
+            test_mask,
+            test_y,
+            batch_size,
+        )
