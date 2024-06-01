@@ -3,9 +3,9 @@ from sklearn.metrics import classification_report
 import torch
 import torch.nn as nn
 from transformers import AdamW
-
-from model import BERT_Class, bert
-from preprocessing import DataPreprocessor
+from fakenews.config import PROCESSED_DATA_DIR
+from model import BERT_Class
+from fakenews.data.preprocessing import DataPreprocessor
 
 # Set device
 DEVICE = torch.device(
@@ -15,51 +15,35 @@ DEVICE = torch.device(
     if torch.backends.mps.is_available()
     else "cpu"
 )
-DATA_DIR = "data"
-
 
 @click.group()
 def cli():
-    """
-    Command line interface.
-    """
+    """Command line interface for training and evaluating the BERT model."""
     pass
 
-
 @click.command()
+@click.option("--pretrained", default="base", type=click.Choice(["base", "large"]), help="Pretrained model to use.")
 @click.option("--lr", default=1e-5, help="Learning rate to use for training.")
 @click.option("--batch_size", default=32, help="Batch size to use for training.")
 @click.option("--epochs", default=10, help="Number of epochs to train for.")
-@click.option(
-    "--patience",
-    default=3,
-    help="Number of epochs to wait for improvement before stopping early.",
-)
-def train(epochs=10, lr=1e-5, batch_size=32, patience=3):
+@click.option("--patience", default=3, help="Epochs to wait for stopping early.")
+def train(pretrained, epochs=10, lr=1e-5, batch_size=32, patience=3):
     """
     Train the BERT model.
 
-    Parameters
-    ----------
-    epochs : int, optional
-        Number of epochs to train for (default is 10).
-    lr : float, optional
-        Learning rate to use for training (default is 1e-5).
-    batch_size : int, optional
-        Batch size to use for training (default is 32).
-    patience : int, optional
-        Number of epochs to wait for improvement before stopping early (default is 3).
+    Args:
+        pretrained (str): Pretrained model to use. Options are "base" and "large".
+        epochs (int): Number of epochs to train for.
+        lr (float): Learning rate to use for training.
+        batch_size (int): Batch size to use for training.
+        patience (int): Number of epochs to wait for improvement before stopping early.
     """
     print("Training day and night")
-    print(f"{lr=}, {batch_size=}, {epochs=}, {patience=}")
-
-    # Freeze BERT parameters
-    for param in bert.parameters():
-        param.requires_grad = False
+    print(f"{pretrained=}, {lr=}, {batch_size=}, {epochs=}, {patience=}")
 
     # Initialize the model and move it to the specified device
-    model = BERT_Class(bert).to(DEVICE)
-    preprocessor = DataPreprocessor(DATA_DIR)
+    model = BERT_Class(pretrained=pretrained).to(DEVICE)
+    preprocessor = DataPreprocessor(PROCESSED_DATA_DIR)
     train_dataloader, val_dataloader, _ = preprocessor.process(batch_size)
 
     # Define optimizer and loss function
@@ -69,19 +53,20 @@ def train(epochs=10, lr=1e-5, batch_size=32, patience=3):
     best_valid_loss = float("inf")
     epochs_no_improve = 0
 
-    # Training loop
     for epoch in range(epochs):
         print(f"\n Epoch {epoch + 1} / {epochs}")
 
         model.train()
         total_loss = 0
 
-        # Train over each batch
         for step, batch in enumerate(train_dataloader):
             if step % 50 == 0 and not step == 0:
                 print(f"  Batch {step}  of  {len(train_dataloader)}.")
 
+            # Transfer batch to DEVICE
             sent_id, mask, labels = [item.to(DEVICE) for item in batch]
+
+            # Zero gradients, perform forward pass, compute loss, and backpropagate
             model.zero_grad()
             preds = model(sent_id, mask)
             labels = labels.long()
@@ -97,12 +82,13 @@ def train(epochs=10, lr=1e-5, batch_size=32, patience=3):
         model.eval()
         total_loss = 0
 
-        # Validate the model
+        # Validation loop
         with torch.no_grad():
             for step, batch in enumerate(val_dataloader):
                 if step % 50 == 0 and not step == 0:
                     print(f"  Batch {step}  of  {len(val_dataloader)}.")
 
+                # Transfer batch to DEVICE
                 sent_id, mask, labels = [item.to(DEVICE) for item in batch]
                 preds = model(sent_id, mask)
                 labels = labels.long()
@@ -116,7 +102,6 @@ def train(epochs=10, lr=1e-5, batch_size=32, patience=3):
         if avg_valid_loss < best_valid_loss:
             best_valid_loss = avg_valid_loss
             epochs_no_improve = 0
-            # Save the best model checkpoint
             torch.save(model.state_dict(), "best_model_weights.pt")
         else:
             epochs_no_improve += 1
@@ -125,32 +110,29 @@ def train(epochs=10, lr=1e-5, batch_size=32, patience=3):
             print(f"Early stopping after {epoch + 1} epochs")
             break
 
-    # Save the final model checkpoint
     torch.save(model.state_dict(), "final_model_weights.pt")
-
 
 @click.command()
 @click.argument("model_checkpoint")
+@click.option("--pretrained", default="base", type=click.Choice(["base", "large"]), help="Pretrained model to use.")
 @click.option("--batch_size", default=32, help="Batch size to use for evaluation.")
-def evaluate(model_checkpoint, batch_size=32):
+def evaluate(model_checkpoint, pretrained, batch_size=32):
     """
     Evaluate a trained model.
 
-    Parameters
-    ----------
-    model_checkpoint : str
-        Path to the model checkpoint file.
-    batch_size : int, optional
-        Batch size to use for evaluation (default is 32).
+    Args:
+        model_checkpoint (str): Path to the model checkpoint file.
+        pretrained (str): Pretrained model to use. Options are "base" and "large".
+        batch_size (int): Batch size to use for evaluation.
     """
     print("Evaluating like my life depends on it")
     print(f"Model checkpoint: {model_checkpoint}")
 
     # Initialize the model and load the checkpoint
-    model = BERT_Class(bert).to(DEVICE)
+    model = BERT_Class(pretrained=pretrained).to(DEVICE)
     model.load_state_dict(torch.load(model_checkpoint, map_location=DEVICE))
 
-    preprocessor = DataPreprocessor(DATA_DIR)
+    preprocessor = DataPreprocessor(PROCESSED_DATA_DIR)
     _, _, test_dataloader = preprocessor.process(batch_size)
 
     model.eval()
@@ -160,15 +142,17 @@ def evaluate(model_checkpoint, batch_size=32):
 
     criterion = nn.NLLLoss()
 
-    # Evaluate the model on the test set
+    # Evaluation loop
     with torch.no_grad():
         for step, batch in enumerate(test_dataloader):
+            # Transfer batch to DEVICE
             sent_id, mask, labels = [item.to(DEVICE) for item in batch]
             preds = model(sent_id, mask)
             labels = labels.long()
             loss = criterion(preds, labels)
             total_loss += loss.item()
 
+            # Collect predictions and labels
             preds = preds.argmax(dim=1).cpu().numpy()
             labels = labels.cpu().numpy()
             all_preds.extend(preds)
@@ -180,11 +164,9 @@ def evaluate(model_checkpoint, batch_size=32):
     report = classification_report(all_labels, all_preds)
     print(report)
 
-    # Calculate and print the exact accuracy
     report_dict = classification_report(all_labels, all_preds, output_dict=True)
     accuracy = report_dict["accuracy"]
     print(f"Exact Accuracy: {accuracy:.4f}")
-
 
 # Add commands to the CLI
 cli.add_command(train)

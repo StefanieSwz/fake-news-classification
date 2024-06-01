@@ -4,6 +4,7 @@ import os
 import subprocess
 import zipfile
 
+from fakenews.config import DATASET, RAW_DATA_DIR
 
 def download_dataset(dataset_name, save_dir):
     """
@@ -38,8 +39,8 @@ def unzip_dataset(zip_file_path, extract_dir):
 
 
 if __name__ == "__main__":
-    dataset_name = "saurabhshahane/fake-news-classification"
-    save_dir = "./data"
+    dataset_name = DATASET
+    save_dir = RAW_DATA_DIR
 
     download_dataset(dataset_name, save_dir)
 

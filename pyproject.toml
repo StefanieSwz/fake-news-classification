@@ -7,7 +7,9 @@ name = "fakenews"
 version = "0.0.1"
 description = "This project is part of the fullfilment for the lecture \"ML Operations\" from LMU and covers the whole deployment lifecycle of a deep learning project. Here we deploy a model for fake news classification."
 authors = [
-  { name = "Anne Gritto, Tobias Brock, Stefanie Schwarz" },
+  { name = "Anne Gritto" },
+  { name = "Tobias Brock" },
+  { name = "Stefanie Schwarz" },
 ]
 license = { file = "LICENSE" }
 readme = "README.md"
@@ -61,3 +63,6 @@ line-ending = "auto"
 [tool.ruff.lint.isort]
 known-first-party = ["fakenews"]
 force-sort-within-sections = true
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
