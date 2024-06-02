@@ -1,11 +1,9 @@
 import torch.nn as nn
 from transformers import AutoModel
 
+
 class BERT_Class(nn.Module):
-    PRETRAINED_MODELS = {
-        "base": "bert-base-uncased",
-        "large": "bert-large-uncased"
-    }
+    PRETRAINED_MODELS = {"base": "bert-base-uncased", "large": "bert-large-uncased"}
 
     def __init__(self, pretrained="base"):
         """
@@ -43,6 +41,7 @@ class BERT_Class(nn.Module):
         x = self.fc2(x)  # output layer
         x = self.softmax(x)  # apply softmax activation
         return x
+
 
 if __name__ == "__main__":
     # Example usage with predefined pretrained models

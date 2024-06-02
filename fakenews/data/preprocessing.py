@@ -5,6 +5,7 @@ import torch
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
 from transformers import BertTokenizerFast
 from fakenews.config import PROCESSED_DATA_DIR, RAW_DATA_DIR
+from fakenews.config import MAX_LENGTH, TESTSET_SIZE, VALSET_SIZE
 
 
 class DataPreprocessor:
@@ -17,7 +18,7 @@ class DataPreprocessor:
         tokenizer (BertTokenizerFast): The tokenizer for BERT model.
     """
 
-    def __init__(self, data_dir, max_length=15):
+    def __init__(self, data_dir, max_length=MAX_LENGTH):
         """
         Constructs all the necessary attributes for the DataPreprocessor object.
 
@@ -81,23 +82,25 @@ class DataPreprocessor:
             data (pd.DataFrame): The preprocessed data.
 
         Returns:
-            tuple: Containing lists of training text data, validation text data, test text data, training labels, validation labels, and test labels.
+            tuple: Containing lists of training text data, validation text data, test text data,
+            training labels, validation labels, and test labels.
         """
         train_text, temp_text, train_labels, temp_labels = train_test_split(
             data["title"],
             data["label"],
             random_state=2018,
-            test_size=0.3,
+            test_size=TESTSET_SIZE,
             stratify=data["label"],
         )
         val_text, test_text, val_labels, test_labels = train_test_split(
             temp_text,
             temp_labels,
             random_state=2018,
-            test_size=0.5,
+            test_size=VALSET_SIZE,
             stratify=temp_labels,
         )
 
+        # Replace NaN values with empty strings and convert to lists
         train_text = train_text.fillna("").apply(str).tolist()
         val_text = val_text.fillna("").apply(str).tolist()
         test_text = test_text.fillna("").apply(str).tolist()
@@ -167,25 +170,20 @@ class DataPreprocessor:
             batch_size (int): The batch size for DataLoader.
 
         Returns:
-            tuple: Containing DataLoader for training data, DataLoader for validation data, and DataLoader for test data.
+            tuple: Containing DataLoader for training data,
+            DataLoader for validation data, and DataLoader for test data.
         """
         train_data = TensorDataset(train_seq, train_mask, train_y)
         train_sampler = RandomSampler(train_data)
-        train_dataloader = DataLoader(
-            train_data, sampler=train_sampler, batch_size=batch_size
-        )
+        train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=batch_size)
 
         val_data = TensorDataset(val_seq, val_mask, val_y)
         val_sampler = SequentialSampler(val_data)
-        val_dataloader = DataLoader(
-            val_data, sampler=val_sampler, batch_size=batch_size
-        )
+        val_dataloader = DataLoader(val_data, sampler=val_sampler, batch_size=batch_size)
 
         test_data = TensorDataset(test_seq, test_mask, test_y)
         test_sampler = SequentialSampler(test_data)
-        test_dataloader = DataLoader(
-            test_data, sampler=test_sampler, batch_size=batch_size
-        )
+        test_dataloader = DataLoader(test_data, sampler=test_sampler, batch_size=batch_size)
 
         return train_dataloader, val_dataloader, test_dataloader
 
@@ -197,12 +195,11 @@ class DataPreprocessor:
             batch_size (int): The batch size for DataLoader.
 
         Returns:
-            tuple: Containing DataLoader for training data, DataLoader for validation data, and DataLoader for test data.
+            tuple: Containing DataLoader for training data, DataLoader for validation data,
+            and DataLoader for test data.
         """
         data = self.load_preprocessed_data()
-        train_text, val_text, test_text, train_labels, val_labels, test_labels = (
-            self.split_data(data)
-        )
+        train_text, val_text, test_text, train_labels, val_labels, test_labels = self.split_data(data)
         tokens_train = self.tokenize_data(train_text)
         tokens_val = self.tokenize_data(val_text)
         tokens_test = self.tokenize_data(test_text)

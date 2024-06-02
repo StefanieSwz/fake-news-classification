@@ -6,6 +6,7 @@ import zipfile
 
 from fakenews.config import DATASET, RAW_DATA_DIR
 
+
 def download_dataset(dataset_name, save_dir):
     """
     Function to download dataset from Kaggle.
@@ -22,9 +23,7 @@ def download_dataset(dataset_name, save_dir):
         return
 
     # Download dataset if not present locally
-    subprocess.run(
-        ["kaggle", "datasets", "download", "-d", dataset_name, "-p", save_dir]
-    )
+    subprocess.run(["kaggle", "datasets", "download", "-d", dataset_name, "-p", save_dir])
 
 
 def unzip_dataset(zip_file_path, extract_dir):

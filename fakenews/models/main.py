@@ -3,23 +3,20 @@ from sklearn.metrics import classification_report
 import torch
 import torch.nn as nn
 from transformers import AdamW
-from fakenews.config import PROCESSED_DATA_DIR
+from fakenews.config import PROCESSED_DATA_DIR, MODELS_DIR
 from model import BERT_Class
 from fakenews.data.preprocessing import DataPreprocessor
+import os
 
 # Set device
-DEVICE = torch.device(
-    "cuda"
-    if torch.cuda.is_available()
-    else "mps"
-    if torch.backends.mps.is_available()
-    else "cpu"
-)
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
+
 
 @click.group()
 def cli():
     """Command line interface for training and evaluating the BERT model."""
     pass
+
 
 @click.command()
 @click.option("--pretrained", default="base", type=click.Choice(["base", "large"]), help="Pretrained model to use.")
@@ -102,7 +99,7 @@ def train(pretrained, epochs=10, lr=1e-5, batch_size=32, patience=3):
         if avg_valid_loss < best_valid_loss:
             best_valid_loss = avg_valid_loss
             epochs_no_improve = 0
-            torch.save(model.state_dict(), "best_model_weights.pt")
+            torch.save(model.state_dict(), os.path.join(MODELS_DIR, "best_model_weights.pt"))
         else:
             epochs_no_improve += 1
 
@@ -110,7 +107,8 @@ def train(pretrained, epochs=10, lr=1e-5, batch_size=32, patience=3):
             print(f"Early stopping after {epoch + 1} epochs")
             break
 
-    torch.save(model.state_dict(), "final_model_weights.pt")
+    torch.save(model.state_dict(), os.path.join(MODELS_DIR, "final_model_weights.pt"))
+
 
 @click.command()
 @click.argument("model_checkpoint")
@@ -167,6 +165,7 @@ def evaluate(model_checkpoint, pretrained, batch_size=32):
     report_dict = classification_report(all_labels, all_preds, output_dict=True)
     accuracy = report_dict["accuracy"]
     print(f"Exact Accuracy: {accuracy:.4f}")
+
 
 # Add commands to the CLI
 cli.add_command(train)
