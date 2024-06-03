@@ -1,0 +1,2 @@
+batch_size: 32
+model_checkpoint: best_model_weights.pt

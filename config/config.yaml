@@ -1,0 +1,5 @@
+defaults:
+  - preprocess: preprocess
+  - train: train
+  - eval: eval
+  - model: model

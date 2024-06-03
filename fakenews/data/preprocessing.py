@@ -4,13 +4,15 @@ from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
 from transformers import BertTokenizerFast
-from fakenews.config import PROCESSED_DATA_DIR, RAW_DATA_DIR
-from fakenews.config import MAX_LENGTH, TESTSET_SIZE, VALSET_SIZE
+from omegaconf import DictConfig
+import hydra
+from hydra import initialize, initialize_config_dir, initialize_config_module
+from fakenews.config import RAW_DATA_DIR, PROCESSED_DATA_DIR
 
 
 class DataPreprocessor:
     """
-    A class used to preprocess data for BERT model training.
+    A class to preprocess data for BERT model training.
 
     Attributes:
         data_dir (str): The directory where the data files are stored.
@@ -18,13 +20,13 @@ class DataPreprocessor:
         tokenizer (BertTokenizerFast): The tokenizer for BERT model.
     """
 
-    def __init__(self, data_dir, max_length=MAX_LENGTH):
+    def __init__(self, data_dir, max_length):
         """
         Constructs all the necessary attributes for the DataPreprocessor object.
 
         Args:
             data_dir (str): The directory where the data files are stored.
-            max_length (int, optional): The maximum length of the tokenized sequences (default is 15).
+            max_length (int): The maximum length of the tokenized sequences.
         """
         self.data_dir = data_dir
         self.max_length = max_length
@@ -53,33 +55,43 @@ class DataPreprocessor:
         data["label"] = data["label"].astype(int)
         return data
 
-    def save_preprocessed_data(self, data):
+    def save_preprocessed_data(self, data, processed_data_dir):
         """
         Saves the preprocessed data to a CSV file.
 
         Args:
             data (pd.DataFrame): DataFrame containing the preprocessed data.
+            processed_data_dir (str): Directory to save the preprocessed data.
         """
-        preprocessed_file = os.path.join(PROCESSED_DATA_DIR, "preprocessed_data.csv")
+        preprocessed_file = os.path.join(processed_data_dir, "preprocessed_data.csv")
+        if not os.path.exists(processed_data_dir):
+            os.makedirs(processed_data_dir)
         data.to_csv(preprocessed_file, index=False)
+        print(f"Preprocessed data saved to {preprocessed_file}")
 
-    def load_preprocessed_data(self):
+    def load_preprocessed_data(self, processed_data_dir):
         """
         Loads the preprocessed data from a CSV file.
+
+        Args:
+            processed_data_dir (str): Directory to load the preprocessed data from.
 
         Returns:
             pd.DataFrame: DataFrame containing the preprocessed data.
         """
-        preprocessed_file = os.path.join(PROCESSED_DATA_DIR, "preprocessed_data.csv")
+        preprocessed_file = os.path.join(processed_data_dir, "preprocessed_data.csv")
         data = pd.read_csv(preprocessed_file)
         return data
 
-    def split_data(self, data):
+    def split_data(self, data, test_size, val_size, random_state):
         """
         Splits the data into training, validation, and test sets.
 
         Args:
             data (pd.DataFrame): The preprocessed data.
+            test_size (float): Proportion of the dataset to include in the test split.
+            val_size (float): Proportion of the test dataset to include in the validation split.
+            random_state (int): Random seed for shuffling the data.
 
         Returns:
             tuple: Containing lists of training text data, validation text data, test text data,
@@ -88,26 +100,23 @@ class DataPreprocessor:
         train_text, temp_text, train_labels, temp_labels = train_test_split(
             data["title"],
             data["label"],
-            random_state=2018,
-            test_size=TESTSET_SIZE,
+            random_state=random_state,
+            test_size=test_size,
             stratify=data["label"],
         )
         val_text, test_text, val_labels, test_labels = train_test_split(
             temp_text,
             temp_labels,
-            random_state=2018,
-            test_size=VALSET_SIZE,
+            random_state=random_state,
+            test_size=val_size,
             stratify=temp_labels,
         )
-
-        # Replace NaN values with empty strings and convert to lists
         train_text = train_text.fillna("").apply(str).tolist()
         val_text = val_text.fillna("").apply(str).tolist()
         test_text = test_text.fillna("").apply(str).tolist()
         train_labels = train_labels.tolist()
         val_labels = val_labels.tolist()
         test_labels = test_labels.tolist()
-
         return train_text, val_text, test_text, train_labels, val_labels, test_labels
 
     def tokenize_data(self, texts):
@@ -187,19 +196,25 @@ class DataPreprocessor:
 
         return train_dataloader, val_dataloader, test_dataloader
 
-    def process(self, batch_size):
+    def process(self, batch_size, test_size, val_size, random_state, processed_data_dir):
         """
         Executes the entire preprocessing pipeline from loading data to creating DataLoader objects.
 
         Args:
             batch_size (int): The batch size for DataLoader.
+            test_size (float): Proportion of the dataset to include in the test split.
+            val_size (float): Proportion of the test dataset to include in the validation split.
+            random_state (int): Random seed for shuffling the data.
+            processed_data_dir (str): Directory to load the preprocessed data from.
 
         Returns:
             tuple: Containing DataLoader for training data, DataLoader for validation data,
             and DataLoader for test data.
         """
-        data = self.load_preprocessed_data()
-        train_text, val_text, test_text, train_labels, val_labels, test_labels = self.split_data(data)
+        data = self.load_preprocessed_data(processed_data_dir)
+        train_text, val_text, test_text, train_labels, val_labels, test_labels = self.split_data(
+            data, test_size, val_size, random_state
+        )
         tokens_train = self.tokenize_data(train_text)
         tokens_val = self.tokenize_data(val_text)
         tokens_test = self.tokenize_data(test_text)
@@ -222,13 +237,19 @@ class DataPreprocessor:
         )
 
 
-if __name__ == "__main__":
-    data_dir = RAW_DATA_DIR
-    preprocessor = DataPreprocessor(data_dir)
+@hydra.main(config_path="../../config", config_name="config", version_base="1.2")
+def main(cfg: DictConfig):
+    """
+    Main function to run the data preprocessing.
 
-    # Load and preprocess data
+    Args:
+        cfg (DictConfig): Configuration composed by Hydra.
+    """
+    preprocessor = DataPreprocessor(RAW_DATA_DIR, cfg.preprocess.max_length)
     data = preprocessor.load_data()
     preprocessed_data = preprocessor.preprocess_data(data)
+    preprocessor.save_preprocessed_data(preprocessed_data, PROCESSED_DATA_DIR)
 
-    # Save preprocessed data
-    preprocessor.save_preprocessed_data(preprocessed_data)
+
+if __name__ == "__main__":
+    main()

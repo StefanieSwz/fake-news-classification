@@ -21,13 +21,7 @@ MODELS_DIR = PROJ_ROOT / "models"
 REPORTS_DIR = PROJ_ROOT / "reports"
 FIGURES_DIR = REPORTS_DIR / "figures"
 
-# Configuration variables
-TESTSET_SIZE = 0.3
-VALSET_SIZE = 0.5  # This is the proportion of the test set to use as validation set
-MAX_LENGTH = 15
-
 # If tqdm is installed, configure loguru with tqdm.write
-# https://github.com/Delgan/loguru/issues/135
 try:
     from tqdm import tqdm
 
