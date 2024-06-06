@@ -1,24 +1,20 @@
 import click
-import os
 import sys
 import hydra
 from omegaconf import DictConfig, OmegaConf
-from hydra.core.hydra_config import HydraConfig
 from hydra import initialize, compose
 from fakenews.data.preprocessing import DataPreprocessor
 from fakenews.config import RAW_DATA_DIR, PROCESSED_DATA_DIR
-from fakenews.models.evaluate import evaluate
-from fakenews.models.train import train
+from fakenews.models.main import train_and_eval
+import os
+
+# Suppress the Huggingface tokenizers parallelism warning
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
 @hydra.main(config_path="config", config_name="config", version_base="1.2")
 def preprocess(cfg: DictConfig):
-    """
-    Hydra-decorated function for data preprocessing.
-
-    Args:
-        cfg (DictConfig): Configuration composed by Hydra.
-    """
+    """Hydra-decorated function for data preprocessing."""
     preprocessor = DataPreprocessor(RAW_DATA_DIR, cfg.preprocess.max_length)
     data = preprocessor.load_data()
     preprocessed_data = preprocessor.preprocess_data(data)
@@ -26,25 +22,9 @@ def preprocess(cfg: DictConfig):
 
 
 @hydra.main(config_path="config", config_name="config", version_base="1.2")
-def evaluate_fun(cfg: DictConfig):
-    """
-    Hydra-decorated function to evaluate a trained BERT model.
-
-    Args:
-        cfg (DictConfig): Configuration composed by Hydra.
-    """
-    evaluate(cfg)
-
-
-@hydra.main(config_path="config", config_name="config", version_base="1.2")
-def train_fun(cfg: DictConfig):
-    """
-    Hydra-decorated function to train the BERT model.
-
-    Args:
-        cfg (DictConfig): Configuration composed by Hydra.
-    """
-    train(cfg)
+def train_and_evaluate_fun(cfg: DictConfig):
+    """Hydra-decorated function to train and evaluate the BERT model."""
+    train_and_eval(cfg)
 
 
 @click.group()
@@ -54,36 +34,29 @@ def cli():
 
 
 @cli.command(name="preprocess")
-def preprocess_cmd():
+@click.pass_context
+@click.argument("overrides", nargs=-1, type=click.UNPROCESSED)
+def preprocess_cmd(ctx, overrides):
     """
     Command to preprocess the data.
 
     This command clears the Click arguments and invokes the `preprocess` function.
     """
-    sys.argv = [sys.argv[0]]  # Clear the Click arguments
+    sys.argv = [sys.argv[0]] + list(overrides)  # Clear the Click arguments and pass the remaining to Hydra
     preprocess()
 
 
-@cli.command(name="evaluate")
-def evaluate_cmd():
+@cli.command(name="train_and_eval")
+@click.pass_context
+@click.argument("overrides", nargs=-1, type=click.UNPROCESSED)
+def train_and_evaluate_cmd(ctx, overrides):
     """
-    Command to evaluate the model.
+    Command to train and evaluate the model.
 
-    This command clears the Click arguments and invokes the `evaluate_fun` function.
+    This command clears the Click arguments and invokes the `train_and_evaluate_fun` function.
     """
-    sys.argv = [sys.argv[0]]  # Clear the Click arguments
-    evaluate_fun()
-
-
-@cli.command(name="train")
-def train_cmd():
-    """
-    Command to train the model.
-
-    This command clears the Click arguments and invokes the `train_fun` function.
-    """
-    sys.argv = [sys.argv[0]]  # Clear the Click arguments
-    train_fun()
+    sys.argv = [sys.argv[0]] + list(overrides)  # Clear the Click arguments and pass the remaining to Hydra
+    train_and_evaluate_fun()
 
 
 @cli.command()

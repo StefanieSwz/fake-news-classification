@@ -6,7 +6,6 @@ from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, Tenso
 from transformers import BertTokenizerFast
 from omegaconf import DictConfig
 import hydra
-from hydra import initialize, initialize_config_dir, initialize_config_module
 from fakenews.config import RAW_DATA_DIR, PROCESSED_DATA_DIR
 
 
