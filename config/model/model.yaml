@@ -1,0 +1,5 @@
+name: "bert-base-uncased"
+dropout_rate: 0.1
+hidden_size: 768  # For "bert-base-uncased". Use 1024 for "bert-large-uncased"
+intermediate_size: 512
+output_size: 2

@@ -1,1 +1,1 @@
-import config  # noqa: F401
+from fakenews import config  # noqa: F401

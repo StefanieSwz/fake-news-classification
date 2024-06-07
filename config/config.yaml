@@ -1,0 +1,5 @@
+defaults:
+  - preprocess: preprocess
+  - main: main
+  - predict: predict
+  - model: model
