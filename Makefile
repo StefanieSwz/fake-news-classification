@@ -60,7 +60,22 @@ create_environment:
 ## Make Dataset
 .PHONY: data
 data: requirements
-	$(PYTHON_INTERPRETER) fakenews/data/make_dataset.py
+	$(PYTHON_INTERPRETER) fakenews/data/make_dataset.py 
+
+## Make Preprocess
+.PHONY: preprocess
+preprocess: 
+	$(PYTHON_INTERPRETER) fakenews/data/preprocessing.py 
+
+## Make Train
+.PHONY: train_model
+train_model: 
+	$(PYTHON_INTERPRETER) fakenews/model/train_model.py 
+
+## Make 
+.PHONY: predict
+train: 
+	$(PYTHON_INTERPRETER) fakenews/model/predict.py 
 
 
 #################################################################################
