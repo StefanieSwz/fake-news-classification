@@ -70,9 +70,9 @@ class BERTClass(pl.LightningModule):
         _, loss, acc = self._get_preds_loss_accuracy(batch)
         self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         self.log("train_acc", acc, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        self.log("lr", self.hparams.main.lr)
+        self.log("lr", self.hparams.train.lr)
         self.log("dropout_rate", self.hparams.model.dropout_rate)
-        self.log("batch_size", self.hparams.main.batch_size)
+        self.log("batch_size", self.hparams.train.batch_size)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -134,7 +134,7 @@ class BERTClass(pl.LightningModule):
         Returns:
             The configured optimizer.
         """
-        return torch.optim.AdamW(self.parameters(), lr=self.hparams.main.lr)
+        return torch.optim.AdamW(self.parameters(), lr=self.hparams.train.lr)
 
     def _get_preds_loss_accuracy(self, batch):
         """Convenience function since train/valid/test steps are similar."""

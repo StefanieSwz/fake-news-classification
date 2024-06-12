@@ -1,5 +1,5 @@
 defaults:
   - preprocess: preprocess
-  - main: main
+  - train: train
   - predict: predict
   - model: model
