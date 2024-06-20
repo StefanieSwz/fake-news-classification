@@ -43,16 +43,18 @@ class DataPreprocessor:
 
     def preprocess_data(self, data):
         """
-        Preprocesses the data by generating labels.
+        Preprocesses the data by generating labels and keeping indices.
 
         Args:
             data (pd.DataFrame): DataFrame containing the dataset.
 
         Returns:
-            pd.DataFrame: DataFrame containing the preprocessed data with labels.
+            pd.DataFrame: DataFrame containing the preprocessed data with labels and indices.
         """
+        data = data.dropna(subset=["title"])  # Drop rows where title is NaN
+        data = data.reset_index(drop=True)  # Reset index to get row indices without column name
         data["label"] = data["label"].astype(int)
-        return data
+        return data[["title", "label"]]
 
     def save_preprocessed_data(self, data, processed_data_dir):
         """
@@ -65,10 +67,10 @@ class DataPreprocessor:
         preprocessed_file = os.path.join(processed_data_dir, "preprocessed_data.csv")
         if not os.path.exists(processed_data_dir):
             os.makedirs(processed_data_dir)
-        data.to_csv(preprocessed_file, index=False)
+        data.to_csv(preprocessed_file, index=True)  # Save the DataFrame with the index
         print(f"Preprocessed data saved to {preprocessed_file}")
 
-    def load_preprocessed_data(self, processed_data_dir):
+    def load_preprocessed_data(self, processed_data_dir, file_name):
         """
         Loads the preprocessed data from a CSV file.
 
@@ -78,8 +80,8 @@ class DataPreprocessor:
         Returns:
             pd.DataFrame: DataFrame containing the preprocessed data.
         """
-        preprocessed_file = os.path.join(processed_data_dir, "preprocessed_data.csv")
-        data = pd.read_csv(preprocessed_file)
+        preprocessed_file = os.path.join(processed_data_dir, file_name)
+        data = pd.read_csv(preprocessed_file, index_col=0)  # Load the DataFrame with the index
         return data
 
     def split_data(self, data, test_size, val_size, random_state):
@@ -110,9 +112,9 @@ class DataPreprocessor:
             test_size=val_size,
             stratify=temp_labels,
         )
-        train_text = train_text.fillna("").apply(str).tolist()
-        val_text = val_text.fillna("").apply(str).tolist()
-        test_text = test_text.fillna("").apply(str).tolist()
+        train_text = train_text.tolist()
+        val_text = val_text.tolist()
+        test_text = test_text.tolist()
         train_labels = train_labels.tolist()
         val_labels = val_labels.tolist()
         test_labels = test_labels.tolist()
@@ -210,7 +212,7 @@ class DataPreprocessor:
             tuple: Containing DataLoader for training data, DataLoader for validation data,
             and DataLoader for test data.
         """
-        data = self.load_preprocessed_data(processed_data_dir)
+        data = self.load_preprocessed_data(processed_data_dir, file_name = "preprocessed_data.csv")
         train_text, val_text, test_text, train_labels, val_labels, test_labels = self.split_data(
             data, test_size, val_size, random_state
         )
@@ -234,6 +236,28 @@ class DataPreprocessor:
             test_y,
             batch_size,
         )
+    
+    def create_prediction_dataloader(self, predict_data_dir, batch_size):
+        """
+        Creates DataLoader object for prediction data.
+
+        Args:
+            titles (list): List of titles to be tokenized and converted to DataLoader.
+            batch_size (int): The batch size for DataLoader.
+
+        Returns:
+            DataLoader: DataLoader object for prediction data.
+        """
+        # Create DataLoader for prediction data
+        predict_data = self.load_preprocessed_data(predict_data_dir, file_name = "predict_data.csv")
+        titles = predict_data["title"].tolist()
+        tokens = self.tokenize_data(titles)
+        seq = torch.tensor(tokens["input_ids"])
+        mask = torch.tensor(tokens["attention_mask"])
+        predict_data = TensorDataset(seq, mask)
+        predict_sampler = SequentialSampler(predict_data)
+        predict_dataloader = DataLoader(predict_data, sampler=predict_sampler, batch_size=batch_size)
+        return predict_dataloader
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base="1.2")
