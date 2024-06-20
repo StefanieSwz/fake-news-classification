@@ -9,7 +9,7 @@ import torch
 from omegaconf import OmegaConf, DictConfig
 from transformers import AutoTokenizer
 from torch.utils.data import DataLoader, TensorDataset
-from fakenews.models.model import BERTClass
+from fakenews.model.model import BERTClass
 from hydra import initialize, compose
 import pytorch_lightning as pl
 from transformers import AutoModel
