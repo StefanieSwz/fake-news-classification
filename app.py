@@ -1,12 +1,14 @@
-import click
-import sys
-import hydra
-from omegaconf import DictConfig, OmegaConf
-from hydra import initialize, compose
-from fakenews.data.preprocessing import DataPreprocessor
-from fakenews.config import RAW_DATA_DIR, PROCESSED_DATA_DIR
-from fakenews.models.main import train_and_eval
 import os
+import sys
+
+import click
+import hydra
+from hydra import compose, initialize
+from omegaconf import DictConfig, OmegaConf
+
+from fakenews.config import PROCESSED_DATA_DIR, RAW_DATA_DIR
+from fakenews.data.preprocessing import DataPreprocessor
+from fakenews.models.main import train_and_eval
 
 # Suppress the Huggingface tokenizers parallelism warning
 os.environ["TOKENIZERS_PARALLELISM"] = "false"

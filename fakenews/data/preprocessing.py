@@ -1,12 +1,14 @@
 import os
+
+import hydra
+from omegaconf import DictConfig
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
 from transformers import BertTokenizerFast
-from omegaconf import DictConfig
-import hydra
-from fakenews.config import RAW_DATA_DIR, PROCESSED_DATA_DIR
+
+from fakenews.config import PROCESSED_DATA_DIR, RAW_DATA_DIR
 
 
 class DataPreprocessor:

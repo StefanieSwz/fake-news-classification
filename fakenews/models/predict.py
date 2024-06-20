@@ -1,14 +1,16 @@
+import logging
 import os
-import torch
-from pytorch_lightning import Trainer
-from omegaconf import DictConfig
+
 import hydra
 from hydra.utils import to_absolute_path
-from fakenews.data.preprocessing import DataPreprocessor
-from fakenews.config import PROCESSED_DATA_DIR, MODELS_DIR
-from fakenews.models.model import BERTClass
-import logging
+from omegaconf import DictConfig
+from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
+import torch
+
+from fakenews.config import MODELS_DIR, PROCESSED_DATA_DIR
+from fakenews.data.preprocessing import DataPreprocessor
+from fakenews.models.model import BERTClass
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base="1.2")

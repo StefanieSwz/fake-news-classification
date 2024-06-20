@@ -1,15 +1,16 @@
+from datetime import datetime
 import os
-import torch
+
+import hydra
+from omegaconf import DictConfig
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
 from pytorch_lightning.loggers import WandbLogger
-from omegaconf import DictConfig
+import torch
+
+from fakenews.config import MODELS_DIR, PROCESSED_DATA_DIR, WANDB_ENTITY, WANDB_PROJECT
 from fakenews.data.preprocessing import DataPreprocessor
-from fakenews.config import PROCESSED_DATA_DIR, MODELS_DIR
-from fakenews.config import WANDB_PROJECT, WANDB_ENTITY
 from fakenews.models.model import BERTClass
-from datetime import datetime
-import hydra
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base="1.2")
