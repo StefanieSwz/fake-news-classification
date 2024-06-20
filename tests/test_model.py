@@ -1,5 +1,8 @@
 """This script tests the models."""
+import sys
 import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import pytest
 import pytest
 import torch
@@ -17,7 +20,7 @@ from transformers import AutoModel
 # Initialize Hydra and load the configuration
 @pytest.fixture
 def cfg():
-    with initialize(config_path="../config"):
+    with initialize(config_path="../config", version_base=None):
         cfg = compose(config_name="config")
     return cfg
 
