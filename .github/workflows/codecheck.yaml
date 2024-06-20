@@ -2,11 +2,9 @@ name: Code formatting
 # Check whether code is formatted correctly with ruff
 on:
   push:
-    branches:
-    - main
+    branches: [ main, pytests ]
   pull_request:
-    branches:
-    - main
+    branches: [ main, pytests ]
 
 jobs:
   build:
