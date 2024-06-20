@@ -89,7 +89,7 @@ def test_load_preprocessed_data():
 def test_download_dataset(mock_run, temp_dir):
     dataset_name = "someuser/somedataset"
     download_dataset(dataset_name, temp_dir)
-    #ndataset_zip_path = os.path.join(temp_dir, f"{dataset_name.split('/')[1]}.zip")
+    # ndataset_zip_path = os.path.join(temp_dir, f"{dataset_name.split('/')[1]}.zip")
     mock_run.assert_called_with(["kaggle", "datasets", "download", "-d", dataset_name, "-p", temp_dir])
     assert os.path.exists(temp_dir)
 
