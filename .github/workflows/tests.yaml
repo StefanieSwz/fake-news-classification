@@ -32,7 +32,7 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
       run: |
         pytest -v
-    
+
     #- name: Get data
     #  uses: iterative/setup-dvc@v1
     #  run: dvc pull
