@@ -136,7 +136,6 @@ class BERTClass(pl.LightningModule):
         """
         return torch.optim.AdamW(self.parameters(), lr=self.hparams.train.lr)
 
-
     def _get_preds_loss_accuracy(self, batch):
         """Convenience function since train/valid/test steps are similar."""
         sent_id, mask, labels = batch
