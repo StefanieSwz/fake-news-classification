@@ -1,70 +1,56 @@
-import logging
 import os
 
 import hydra
-from hydra.utils import to_absolute_path
 from omegaconf import DictConfig
-from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import WandbLogger
 import torch
 
-from fakenews.config import MODELS_DIR, PROCESSED_DATA_DIR
+from fakenews.config import MODELS_DIR, PREDICT_DATA_DIR
 from fakenews.data.preprocessing import DataPreprocessor
-from fakenews.models.model import BERTClass
+from fakenews.model.model import BERTClass
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base="1.2")
-def evaluate(cfg: DictConfig):
+def predict(cfg: DictConfig):
     """
-    Evaluate a trained BERT model.
+    Predict the labels for new instances using the trained model.
 
     Args:
         cfg (DictConfig): Configuration composed by Hydra.
     """
-    log = logging.getLogger(__name__)
 
-    model_checkpoint_path = os.path.join(to_absolute_path(MODELS_DIR), cfg.eval.model_checkpoint)
-    log.info(f"Model checkpoint: {model_checkpoint_path}")
+    # Initialize the DataPreprocessor
+    preprocessor = DataPreprocessor(data_dir=None, max_length=cfg.preprocess.max_length)
 
-    # Initialize the model with the cfg and load the checkpoint state
-    model = BERTClass(cfg)
-    model.load_state_dict(torch.load(model_checkpoint_path)["state_dict"])
+    # Create DataLoader for prediction data
+    predict_dataloader = preprocessor.create_prediction_dataloader(PREDICT_DATA_DIR, batch_size=cfg.train.batch_size)
 
-    preprocessor = DataPreprocessor(to_absolute_path(PROCESSED_DATA_DIR), max_length=cfg.preprocess.max_length)
-    _, _, test_dataloader = preprocessor.process(
-        batch_size=cfg.eval.batch_size,
-        test_size=cfg.train.test_size,
-        val_size=cfg.train.val_size,
-        random_state=cfg.train.random_state,
-        processed_data_dir=to_absolute_path(PROCESSED_DATA_DIR),
+    # Load the trained model
+    model_dir = os.path.join(MODELS_DIR, str(cfg.predict.checkpoint))
+    checkpoint_path = os.path.join(model_dir, "best_model_weights.ckpt")
+    model = BERTClass.load_from_checkpoint(checkpoint_path)
+
+    # Determine the device (CPU, GPU, MPS)
+    device = torch.device(
+        "mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu"
     )
 
-    # Determine accelerator
-    if torch.cuda.is_available():
-        accelerator = "gpu"
-        devices = 1
-    elif torch.backends.mps.is_available():
-        accelerator = "mps"
-        devices = 1
-    else:
-        accelerator = "cpu"
-        devices = 1
+    # Move model to the device
+    model.to(device)
+    model.eval()
 
-    wandb_logger = WandbLogger(
-        log_model="all",
-        project="fake-news-classification",
-        entity="mlops-fakenews",  # Ensure this is correct and you have access
-        config={
-            "lr": cfg.train.lr,
-            "batch_size": cfg.train.batch_size,
-            "epochs": cfg.train.epochs,
-            "patience": cfg.train.patience,
-        },
-    )
+    # Predict
+    predictions = []
+    with torch.no_grad():
+        for batch in predict_dataloader:
+            sent_id, mask = [t.to(device) for t in batch]
+            outputs = model(sent_id=sent_id, mask=mask)
+            _, preds = torch.max(outputs, dim=1)
+            predictions.extend(preds.tolist())
 
-    trainer = Trainer(accelerator=accelerator, devices=devices, logger=wandb_logger)
-    trainer.test(model, dataloaders=test_dataloader)
+    # Print predictions
+    print(predictions)
 
 
 if __name__ == "__main__":
-    evaluate()
+    predict()
+

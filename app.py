@@ -17,6 +17,12 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 @hydra.main(config_path="config", config_name="config", version_base="1.2")
 def preprocess(cfg: DictConfig):
     """Hydra-decorated function for data preprocessing."""
+    warnings.warn(
+        "App module is deprecated and should not be used. Use Makefile instead. "
+        "Please update your workflow to use the new implementation.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     preprocessor = DataPreprocessor(RAW_DATA_DIR, cfg.preprocess.max_length)
     data = preprocessor.load_data()
     preprocessed_data = preprocessor.preprocess_data(data)
@@ -26,12 +32,24 @@ def preprocess(cfg: DictConfig):
 @hydra.main(config_path="config", config_name="config", version_base="1.2")
 def train_and_evaluate_fun(cfg: DictConfig):
     """Hydra-decorated function to train and evaluate the BERT model."""
-    train_and_eval(cfg)
+    warnings.warn(
+        "App module is deprecated and should not be used. Use Makefile instead. "
+        "Please update your workflow to use the new implementation.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    main(cfg)
 
 
 @click.group()
 def cli():
     """Command line interface for preprocessing, training, and evaluating the BERT model."""
+    warnings.warn(
+        "App module is deprecated and should not be used. Use Makefile instead. "
+        "Please update your workflow to use the new implementation.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     pass
 
 
@@ -44,6 +62,12 @@ def preprocess_cmd(ctx, overrides):
 
     This command clears the Click arguments and invokes the `preprocess` function.
     """
+    warnings.warn(
+        "App module is deprecated and should not be used. Use Makefile instead. "
+        "Please update your workflow to use the new implementation.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     sys.argv = [sys.argv[0]] + list(overrides)  # Clear the Click arguments and pass the remaining to Hydra
     preprocess()
 
@@ -57,6 +81,12 @@ def train_and_evaluate_cmd(ctx, overrides):
 
     This command clears the Click arguments and invokes the `train_and_evaluate_fun` function.
     """
+    warnings.warn(
+        "App module is deprecated and should not be used. Use Makefile instead. "
+        "Please update your workflow to use the new implementation.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     sys.argv = [sys.argv[0]] + list(overrides)  # Clear the Click arguments and pass the remaining to Hydra
     train_and_evaluate_fun()
 
@@ -68,10 +98,22 @@ def entries():
 
     This command initializes Hydra and composes the configuration, then prints it.
     """
+    warnings.warn(
+        "App module is deprecated and should not be used. Use Makefile instead. "
+        "Please update your workflow to use the new implementation.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     with initialize(config_path="config", version_base="1.2"):
         cfg = compose(config_name="config")
         print(OmegaConf.to_yaml(cfg))
 
 
 if __name__ == "__main__":
+    warnings.warn(
+        "App module is deprecated and should not be used. Use Makefile instead. "
+        "Please update your workflow to use the new implementation.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     cli()

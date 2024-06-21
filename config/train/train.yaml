@@ -1,0 +1,16 @@
+lr: 1e-5
+batch_size: 32
+epochs: 1
+patience: 3
+random_state: 2018
+test_size: 0.3
+val_size: 0.5
+filename: 'best_model_weights'
+verbose: True
+devices: 1
+log_every_n_steps: 50
+refresh_rate: 50
+precision: "32"
+profiler: "simple"
+num_runs: 3
+sweep: False
