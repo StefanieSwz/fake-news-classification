@@ -1,0 +1,40 @@
+name: "Run tests"
+
+on:
+  push:
+    branches: [ main, pytests ]
+  pull_request:
+    branches: [ main, pytests ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ["ubuntu-latest", "windows-latest", "macos-latest"]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.11
+        cache: "pip" # caching pip dependencies
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements_tests.txt
+    - name: Test with pytest
+      env:
+          PYTHONPATH: ${{ github.workspace }}
+      run: |
+        pytest -v
+
+    #- name: Get data
+    #  uses: iterative/setup-dvc@v1
+    #  run: dvc pull
+    #  env:
+    #    GDRIVE_CREDENTIALS_DATA: ${{ secrets.GDRIVE_CREDENTIALS_DATA }}`

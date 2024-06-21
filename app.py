@@ -1,6 +1,5 @@
 import os
 import sys
-import warnings
 
 import click
 import hydra
@@ -9,14 +8,7 @@ from omegaconf import DictConfig, OmegaConf
 
 from fakenews.config import PROCESSED_DATA_DIR, RAW_DATA_DIR
 from fakenews.data.preprocessing import DataPreprocessor
-from fakenews.model.train_model import main
-
-# Ensure warnings are always shown
-if not sys.warnoptions:
-    import warnings
-
-    warnings.simplefilter("default")
-
+from fakenews.models.main import train_and_eval
 
 # Suppress the Huggingface tokenizers parallelism warning
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
