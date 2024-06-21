@@ -1,18 +1,20 @@
+from datetime import datetime
 import os
-import torch
+
+import hydra
+from hydra.core.global_hydra import GlobalHydra
+from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
 from pytorch_lightning.loggers import WandbLogger
-from omegaconf import DictConfig, OmegaConf
-from fakenews.data.preprocessing import DataPreprocessor
-from fakenews.config import PROCESSED_DATA_DIR, MODELS_DIR
-from fakenews.config import WANDB_PROJECT, WANDB_ENTITY
-from fakenews.model.model import BERTClass
-from datetime import datetime
-import hydra
-import wandb
+import torch
 import yaml
-from hydra.core.global_hydra import GlobalHydra
+
+from fakenews.config import MODELS_DIR, PROCESSED_DATA_DIR, WANDB_ENTITY, WANDB_PROJECT
+from fakenews.data.preprocessing import DataPreprocessor
+from fakenews.model.model import BERTClass
+import wandb
+
 
 def update_config_with_sweep(cfg: DictConfig, sweep_config):
     """Update Hydra configuration with sweep parameters.
@@ -24,10 +26,11 @@ def update_config_with_sweep(cfg: DictConfig, sweep_config):
     Returns:
         DictConfig: Updated Hydra configuration.
     """
-    cfg.train.lr = sweep_config['train.lr']
-    cfg.train.batch_size = sweep_config['train.batch_size']
-    cfg.model.dropout_rate = sweep_config['model.dropout_rate']
+    cfg.train.lr = sweep_config["train.lr"]
+    cfg.train.batch_size = sweep_config["train.batch_size"]
+    cfg.model.dropout_rate = sweep_config["model.dropout_rate"]
     return cfg
+
 
 def run_sweep(cfg: DictConfig):
     """Run a wandb sweep.
@@ -54,11 +57,14 @@ def run_sweep(cfg: DictConfig):
 
         # Hydra config initialization
         with hydra.initialize(config_path="../../config", version_base="1.2"):
-            cfg = hydra.compose(config_name="config", overrides=[
-                f"train.lr={sweep_config['train.lr']}",
-                f"train.batch_size={sweep_config['train.batch_size']}",
-                f"model.dropout_rate={sweep_config['model.dropout_rate']}"
-            ])
+            cfg = hydra.compose(
+                config_name="config",
+                overrides=[
+                    f"train.lr={sweep_config['train.lr']}",
+                    f"train.batch_size={sweep_config['train.batch_size']}",
+                    f"model.dropout_rate={sweep_config['model.dropout_rate']}",
+                ],
+            )
 
         # Print the updated configuration
         print(f"Training Config: {OmegaConf.to_container(cfg, resolve=True)}")
@@ -88,18 +94,23 @@ def run_sweep(cfg: DictConfig):
 
     wandb.agent(sweep_id, function=train, count=cfg.train.num_runs)
 
+
 def train_fixed(cfg: DictConfig):
     """Train the model with fixed configuration.
 
     Args:
         cfg (DictConfig): Hydra configuration.
     """
-    wandb.init(project=WANDB_PROJECT, entity=WANDB_ENTITY, config={
-        'train.lr': cfg.train.lr,
-        'train.batch_size': cfg.train.batch_size,
-        'train.epochs': cfg.train.epochs,
-        'model.dropout_rate': cfg.model.dropout_rate
-    })
+    wandb.init(
+        project=WANDB_PROJECT,
+        entity=WANDB_ENTITY,
+        config={
+            "train.lr": cfg.train.lr,
+            "train.batch_size": cfg.train.batch_size,
+            "train.epochs": cfg.train.epochs,
+            "model.dropout_rate": cfg.model.dropout_rate,
+        },
+    )
     config = wandb.config
 
     # Merge wandb.config into the Hydra cfg
@@ -130,6 +141,7 @@ def train_fixed(cfg: DictConfig):
 
     # Evaluate the model
     eval_model(cfg, model_dir, test_dataloader)
+
 
 def train_model(cfg: DictConfig, model: BERTClass, train_dataloader, val_dataloader, model_dir: str):
     """Train the model.
@@ -181,6 +193,7 @@ def train_model(cfg: DictConfig, model: BERTClass, train_dataloader, val_dataloa
 
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
 
+
 def eval_model(cfg: DictConfig, model_dir: str, test_dataloader):
     """Evaluate the model.
 
@@ -199,6 +212,7 @@ def eval_model(cfg: DictConfig, model_dir: str, test_dataloader):
 
     trainer.test(model, dataloaders=test_dataloader)
 
+
 @hydra.main(config_path="../../config", config_name="config", version_base="1.2")
 def main(cfg: DictConfig):
     """Main function to handle command-line arguments and run appropriate training function.
@@ -210,6 +224,7 @@ def main(cfg: DictConfig):
         run_sweep(cfg)
     else:
         train_fixed(cfg)
+
 
 if __name__ == "__main__":
     main()

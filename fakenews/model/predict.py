@@ -1,10 +1,13 @@
 import os
-import torch
-from omegaconf import DictConfig
+
 import hydra
-from fakenews.config import PREDICT_DATA_DIR, MODELS_DIR
-from fakenews.model.model import BERTClass
+from omegaconf import DictConfig
+import torch
+
+from fakenews.config import MODELS_DIR, PREDICT_DATA_DIR
 from fakenews.data.preprocessing import DataPreprocessor
+from fakenews.model.model import BERTClass
+
 
 @hydra.main(config_path="../../config", config_name="config", version_base="1.2")
 def predict(cfg: DictConfig):
@@ -27,7 +30,9 @@ def predict(cfg: DictConfig):
     model = BERTClass.load_from_checkpoint(checkpoint_path)
 
     # Determine the device (CPU, GPU, MPS)
-    device = torch.device("mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device(
+        "mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu"
+    )
 
     # Move model to the device
     model.to(device)
@@ -44,6 +49,7 @@ def predict(cfg: DictConfig):
 
     # Print predictions
     print(predictions)
+
 
 if __name__ == "__main__":
     predict()

@@ -1,12 +1,14 @@
 import os
+
+import hydra
+from omegaconf import DictConfig
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
 from transformers import BertTokenizerFast
-from omegaconf import DictConfig
-import hydra
-from fakenews.config import RAW_DATA_DIR, PROCESSED_DATA_DIR
+
+from fakenews.config import PROCESSED_DATA_DIR, RAW_DATA_DIR
 
 
 class DataPreprocessor:
@@ -212,7 +214,7 @@ class DataPreprocessor:
             tuple: Containing DataLoader for training data, DataLoader for validation data,
             and DataLoader for test data.
         """
-        data = self.load_preprocessed_data(processed_data_dir, file_name = "preprocessed_data.csv")
+        data = self.load_preprocessed_data(processed_data_dir, file_name="preprocessed_data.csv")
         train_text, val_text, test_text, train_labels, val_labels, test_labels = self.split_data(
             data, test_size, val_size, random_state
         )
@@ -236,7 +238,7 @@ class DataPreprocessor:
             test_y,
             batch_size,
         )
-    
+
     def create_prediction_dataloader(self, predict_data_dir, batch_size):
         """
         Creates DataLoader object for prediction data.
@@ -249,7 +251,7 @@ class DataPreprocessor:
             DataLoader: DataLoader object for prediction data.
         """
         # Create DataLoader for prediction data
-        predict_data = self.load_preprocessed_data(predict_data_dir, file_name = "predict_data.csv")
+        predict_data = self.load_preprocessed_data(predict_data_dir, file_name="predict_data.csv")
         titles = predict_data["title"].tolist()
         tokens = self.tokenize_data(titles)
         seq = torch.tensor(tokens["input_ids"])

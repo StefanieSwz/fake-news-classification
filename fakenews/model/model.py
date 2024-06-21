@@ -1,9 +1,9 @@
-import torch.nn as nn
-import torch
-import pytorch_lightning as pl
-from transformers import AutoModel
 from omegaconf import DictConfig
+import pytorch_lightning as pl
 from sklearn.metrics import classification_report
+import torch
+import torch.nn as nn
+from transformers import AutoModel
 
 
 class BERTClass(pl.LightningModule):
