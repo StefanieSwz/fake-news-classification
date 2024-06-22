@@ -66,3 +66,9 @@ force-sort-within-sections = true
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
+
+# Ignore Deprecation Warnings when running tests
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::DeprecationWarning"
+]

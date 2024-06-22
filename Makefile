@@ -67,9 +67,15 @@ data: requirements
 preprocess: 
 	$(PYTHON_INTERPRETER) fakenews/data/preprocessing.py ${ARGS}
 
+## Make Preprocess
+.PHONY: generate
+generate: 
+	$(PYTHON_INTERPRETER) fakenews/data/data_generator.py ${ARGS}
+
 ## Make Train
 .PHONY: train_model
-train_model: 
+
+train:
 	$(PYTHON_INTERPRETER) fakenews/model/train_model.py ${ARGS}
 
 ## Make 

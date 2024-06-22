@@ -1,19 +1,21 @@
-import click
-import sys
-import hydra
-from omegaconf import DictConfig, OmegaConf
-from hydra import initialize, compose
-from fakenews.data.preprocessing import DataPreprocessor
-from fakenews.config import RAW_DATA_DIR, PROCESSED_DATA_DIR
-from fakenews.model.train_model import main
 import os
+import sys
 import warnings
+
+import click
+import hydra
+from hydra import compose, initialize
+from omegaconf import DictConfig, OmegaConf
+
+from fakenews.config import PROCESSED_DATA_DIR, RAW_DATA_DIR
+from fakenews.data.preprocessing import DataPreprocessor
+from fakenews.model.train_model import main
 
 # Ensure warnings are always shown
 if not sys.warnoptions:
     import warnings
-    warnings.simplefilter("default")
 
+    warnings.simplefilter("default")
 
 
 # Suppress the Huggingface tokenizers parallelism warning
@@ -27,7 +29,7 @@ def preprocess(cfg: DictConfig):
         "App module is deprecated and should not be used. Use Makefile instead. "
         "Please update your workflow to use the new implementation.",
         DeprecationWarning,
-        stacklevel=2
+        stacklevel=2,
     )
     preprocessor = DataPreprocessor(RAW_DATA_DIR, cfg.preprocess.max_length)
     data = preprocessor.load_data()
@@ -42,7 +44,7 @@ def train_and_evaluate_fun(cfg: DictConfig):
         "App module is deprecated and should not be used. Use Makefile instead. "
         "Please update your workflow to use the new implementation.",
         DeprecationWarning,
-        stacklevel=2
+        stacklevel=2,
     )
     main(cfg)
 
@@ -54,7 +56,7 @@ def cli():
         "App module is deprecated and should not be used. Use Makefile instead. "
         "Please update your workflow to use the new implementation.",
         DeprecationWarning,
-        stacklevel=2
+        stacklevel=2,
     )
     pass
 
@@ -72,7 +74,7 @@ def preprocess_cmd(ctx, overrides):
         "App module is deprecated and should not be used. Use Makefile instead. "
         "Please update your workflow to use the new implementation.",
         DeprecationWarning,
-        stacklevel=2
+        stacklevel=2,
     )
     sys.argv = [sys.argv[0]] + list(overrides)  # Clear the Click arguments and pass the remaining to Hydra
     preprocess()
@@ -91,7 +93,7 @@ def train_and_evaluate_cmd(ctx, overrides):
         "App module is deprecated and should not be used. Use Makefile instead. "
         "Please update your workflow to use the new implementation.",
         DeprecationWarning,
-        stacklevel=2
+        stacklevel=2,
     )
     sys.argv = [sys.argv[0]] + list(overrides)  # Clear the Click arguments and pass the remaining to Hydra
     train_and_evaluate_fun()
@@ -108,7 +110,7 @@ def entries():
         "App module is deprecated and should not be used. Use Makefile instead. "
         "Please update your workflow to use the new implementation.",
         DeprecationWarning,
-        stacklevel=2
+        stacklevel=2,
     )
     with initialize(config_path="config", version_base="1.2"):
         cfg = compose(config_name="config")
@@ -120,6 +122,6 @@ if __name__ == "__main__":
         "App module is deprecated and should not be used. Use Makefile instead. "
         "Please update your workflow to use the new implementation.",
         DeprecationWarning,
-        stacklevel=2
+        stacklevel=2,
     )
     cli()

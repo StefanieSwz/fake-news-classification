@@ -1,7 +1,8 @@
+import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 from loguru import logger
-import os
 
 # Load environment variables from .env file if it exists
 load_dotenv()
@@ -19,6 +20,7 @@ RAW_DATA_DIR = DATA_DIR / "raw"
 INTERIM_DATA_DIR = DATA_DIR / "interim"
 PROCESSED_DATA_DIR = DATA_DIR / "processed"
 EXTERNAL_DATA_DIR = DATA_DIR / "external"
+PREDICT_DATA_DIR = DATA_DIR / "predict"
 
 MODELS_DIR = PROJ_ROOT / "models"
 
