@@ -7,7 +7,7 @@ from loguru import logger
 # Load environment variables from .env file if it exists
 load_dotenv()
 
-api_key = os.getenv("WANDB_API_KEY")
+WANDB_API_KEY = os.getenv("WANDB_API_KEY")
 WANDB_PROJECT = os.getenv("WANDB_PROJECT")
 WANDB_ENTITY = os.getenv("WANDB_ENTITY")
 

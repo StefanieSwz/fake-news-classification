@@ -10,7 +10,7 @@ from pytorch_lightning.loggers import WandbLogger
 import torch
 import yaml
 
-from fakenews.config import MODELS_DIR, PROCESSED_DATA_DIR, WANDB_ENTITY, WANDB_PROJECT
+from fakenews.config import MODELS_DIR, PROCESSED_DATA_DIR, WANDB_ENTITY, WANDB_PROJECT, WANDB_API_KEY
 from fakenews.data.preprocessing import DataPreprocessor
 from fakenews.model.model import BERTClass
 import wandb
@@ -101,6 +101,7 @@ def train_fixed(cfg: DictConfig):
     Args:
         cfg (DictConfig): Hydra configuration.
     """
+    wandb.login(key=WANDB_API_KEY)
     wandb.init(
         project=WANDB_PROJECT,
         entity=WANDB_ENTITY,
