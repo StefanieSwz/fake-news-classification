@@ -4,10 +4,11 @@ import os
 import hydra
 from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictConfig, OmegaConf
+import torch
+import wandb
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
 from pytorch_lightning.loggers import WandbLogger
-import torch
 import yaml
 
 from fakenews.config import (
@@ -19,7 +20,6 @@ from fakenews.config import (
 )
 from fakenews.data.preprocessing import DataPreprocessor
 from fakenews.model.model import BERTClass
-import wandb
 
 
 def update_config_with_sweep(cfg: DictConfig, sweep_config):
