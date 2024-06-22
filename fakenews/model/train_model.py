@@ -10,7 +10,13 @@ from pytorch_lightning.loggers import WandbLogger
 import torch
 import yaml
 
-from fakenews.config import MODELS_DIR, PROCESSED_DATA_DIR, WANDB_API_KEY, WANDB_ENTITY, WANDB_PROJECT
+from fakenews.config import (
+    MODELS_DIR,
+    PROCESSED_DATA_DIR,
+    WANDB_API_KEY,
+    WANDB_ENTITY,
+    WANDB_PROJECT,
+)
 from fakenews.data.preprocessing import DataPreprocessor
 from fakenews.model.model import BERTClass
 import wandb
@@ -207,7 +213,7 @@ def eval_model(cfg: DictConfig, model_dir: str, test_dataloader):
     model = BERTClass.load_from_checkpoint(model_checkpoint_path)
 
     trainer = Trainer(
-        accelerator="gpu" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu",
+        accelerator=("gpu" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"),
         devices=cfg.train.devices,
     )
 
