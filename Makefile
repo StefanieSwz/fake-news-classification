@@ -16,7 +16,7 @@ PYTHON_INTERPRETER = python
 requirements:
 	$(PYTHON_INTERPRETER) -m pip install -U pip
 	$(PYTHON_INTERPRETER) -m pip install -r requirements.txt
-	
+
 
 
 
@@ -44,11 +44,11 @@ format:
 ## Set up python interpreter environment
 .PHONY: create_environment
 create_environment:
-	
+
 	conda create --name $(PROJECT_NAME) python=$(PYTHON_VERSION) -y
-	
+
 	@echo ">>> conda env created. Activate with:\nconda activate $(PROJECT_NAME)"
-	
+
 
 
 
@@ -64,12 +64,12 @@ data: requirements
 
 ## Make Preprocess
 .PHONY: preprocess
-preprocess: 
+preprocess:
 	$(PYTHON_INTERPRETER) fakenews/data/preprocessing.py ${ARGS}
 
 ## Make Preprocess
 .PHONY: generate
-generate: 
+generate:
 	$(PYTHON_INTERPRETER) fakenews/data/data_generator.py ${ARGS}
 
 ## Make Train
@@ -78,9 +78,9 @@ generate:
 train:
 	$(PYTHON_INTERPRETER) fakenews/model/train_model.py ${ARGS}
 
-## Make 
+## Make
 .PHONY: predict
-predict: 
+predict:
 	$(PYTHON_INTERPRETER) fakenews/model/predict.py ${ARGS}
 
 
