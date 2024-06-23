@@ -43,8 +43,8 @@ extend-include = ["*.ipynb"]
 line-length=120 # if recommended length (79 characters) is too restrictive
 
 [tool.ruff.lint]
-# Enable Pyflakes, isort (order imports), NumPy specific rules, auch Pydocstyle?
-select = ["F", "I", "NPY"]  # order import statements
+# Enable Pyflakes, NumPy specific rules, auch Pydocstyle?
+select = ["F", "NPY"]  # order import statements
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
