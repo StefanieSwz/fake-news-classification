@@ -7,4 +7,3 @@ This project is part of the fullfilment for the lecture "ML Operations" from LMU
 ## Commands
 
 The Makefile contains the central entry points for common tasks related to this project.
-
