@@ -150,7 +150,9 @@ def train_fixed(cfg: DictConfig):
     eval_model(cfg, model_dir, test_dataloader)
 
 
-def train_model(cfg: DictConfig, model: BERTClass, train_dataloader, val_dataloader, model_dir: str):
+def train_model(
+    cfg: DictConfig, model: BERTClass, train_dataloader, val_dataloader, model_dir: str
+):
     """Train the model.
 
     Args:
@@ -176,7 +178,11 @@ def train_model(cfg: DictConfig, model: BERTClass, train_dataloader, val_dataloa
 
     progress_bar = TQDMProgressBar(refresh_rate=cfg.train.refresh_rate)
 
-    accelerator = "gpu" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+    accelerator = (
+        "gpu"
+        if torch.cuda.is_available()
+        else "mps" if torch.backends.mps.is_available() else "cpu"
+    )
 
     wandb_logger = WandbLogger(
         log_model="all",
@@ -213,7 +219,11 @@ def eval_model(cfg: DictConfig, model_dir: str, test_dataloader):
     model = BERTClass.load_from_checkpoint(model_checkpoint_path)
 
     trainer = Trainer(
-        accelerator=("gpu" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"),
+        accelerator=(
+            "gpu"
+            if torch.cuda.is_available()
+            else "mps" if torch.backends.mps.is_available() else "cpu"
+        ),
         devices=cfg.train.devices,
     )
 
