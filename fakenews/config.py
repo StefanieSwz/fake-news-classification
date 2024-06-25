@@ -10,6 +10,7 @@ load_dotenv()
 WANDB_API_KEY = os.getenv("WANDB_API_KEY")
 WANDB_PROJECT = os.getenv("WANDB_PROJECT")
 WANDB_ENTITY = os.getenv("WANDB_ENTITY")
+MODEL_REGISTRY = "models"
 
 # Paths
 PROJ_ROOT = Path(__file__).resolve().parents[1]

@@ -1,2 +1,7 @@
 instances : 200
-checkpoint : "20240612_122247"
+artifact_name: "models"
+version: "v1"
+metric_name: "score" # validation loss
+higher_is_better: false # lowest validation loss is used for model selection
+link_artifacts: false
+save_best_model: True

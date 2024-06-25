@@ -74,9 +74,13 @@ generate:
 
 ## Make Train
 .PHONY: train_model
-
 train:
 	$(PYTHON_INTERPRETER) fakenews/model/train_model.py ${ARGS}
+
+## Make
+.PHONY: wandb_registry
+wandb_registry:
+	$(PYTHON_INTERPRETER) fakenews/model/wandb_registry.py ${ARGS}
 
 ## Make
 .PHONY: predict
