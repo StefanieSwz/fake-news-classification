@@ -1,10 +1,16 @@
 import os
-
 import hydra
 from omegaconf import DictConfig
 import torch
+import wandb
 
-from fakenews.config import MODELS_DIR, PREDICT_DATA_DIR
+from fakenews.config import (
+    MODEL_REGISTRY,
+    PREDICT_DATA_DIR,
+    WANDB_API_KEY,
+    WANDB_ENTITY,
+    WANDB_PROJECT,
+)
 from fakenews.data.preprocessing import DataPreprocessor
 from fakenews.model.model import BERTClass
 
@@ -18,6 +24,14 @@ def predict(cfg: DictConfig):
         cfg (DictConfig): Configuration composed by Hydra.
     """
 
+    # Initialize wandb
+    wandb.login(key=WANDB_API_KEY)
+    run = wandb.init(project=WANDB_PROJECT, entity=WANDB_ENTITY)
+
+    # Use the model artifact from wandb
+    artifact = run.use_artifact(f"{WANDB_ENTITY}/model-registry/{MODEL_REGISTRY}:best", type="model")
+    artifact_dir = artifact.download()
+
     # Initialize the DataPreprocessor
     preprocessor = DataPreprocessor(data_dir=None, max_length=cfg.preprocess.max_length)
 
@@ -25,9 +39,7 @@ def predict(cfg: DictConfig):
     predict_dataloader = preprocessor.create_prediction_dataloader(PREDICT_DATA_DIR, batch_size=cfg.train.batch_size)
 
     # Load the trained model
-    model_dir = os.path.join(MODELS_DIR, str(cfg.predict.checkpoint))
-    checkpoint_path = os.path.join(model_dir, "best_model_weights.ckpt")
-    model = BERTClass.load_from_checkpoint(checkpoint_path)
+    model = BERTClass.load_from_checkpoint(os.path.join(artifact_dir, "model.ckpt"), cfg=cfg)
 
     # Determine the device (CPU, GPU, MPS)
     device = torch.device(

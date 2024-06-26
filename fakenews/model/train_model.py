@@ -1,6 +1,7 @@
 from datetime import datetime
 import os
-
+import tempfile
+import shutil
 import hydra
 from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictConfig, OmegaConf
@@ -22,7 +23,7 @@ from fakenews.model.model import BERTClass
 import wandb
 
 
-def update_config_with_sweep(cfg: DictConfig, sweep_config):
+def update_config_with_sweep(cfg: DictConfig, sweep_config: dict) -> DictConfig:
     """Update Hydra configuration with sweep parameters.
 
     Args:
@@ -75,10 +76,13 @@ def run_sweep(cfg: DictConfig):
         # Print the updated configuration
         print(f"Training Config: {OmegaConf.to_container(cfg, resolve=True)}")
 
-        # Create a dated directory within MODELS_DIR
-        date_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-        model_dir = os.path.join(MODELS_DIR, date_str)
-        os.makedirs(model_dir, exist_ok=True)
+        # Create a dated directory within MODELS_DIR if saving is enabled
+        if cfg.train.save_model:
+            date_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+            model_dir = os.path.join(MODELS_DIR, date_str)
+            os.makedirs(model_dir, exist_ok=True)
+        else:
+            model_dir = tempfile.mkdtemp()
 
         # Preprocess data
         preprocessor = DataPreprocessor(PROCESSED_DATA_DIR, cfg.preprocess.max_length)
@@ -98,6 +102,11 @@ def run_sweep(cfg: DictConfig):
         # Evaluate the model
         eval_model(cfg, model_dir, test_dataloader)
 
+        # Remove temporary model directory if not saving
+        if not cfg.train.save_model:
+            shutil.rmtree(model_dir)
+
+    # Run wandb agent
     wandb.agent(sweep_id, function=train, count=cfg.train.num_runs)
 
 
@@ -122,14 +131,15 @@ def train_fixed(cfg: DictConfig):
 
     # Merge wandb.config into the Hydra cfg
     cfg = update_config_with_sweep(cfg, config)
-
-    # Print the updated configuration
     print(f"Training Config: {OmegaConf.to_container(cfg, resolve=True)}")
 
-    # Create a dated directory within MODELS_DIR
-    date_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-    model_dir = os.path.join(MODELS_DIR, date_str)
-    os.makedirs(model_dir, exist_ok=True)
+    # Create a dated directory within MODELS_DIR if saving is enabled
+    if cfg.train.save_model:
+        date_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+        model_dir = os.path.join(MODELS_DIR, date_str)
+        os.makedirs(model_dir, exist_ok=True)
+    else:
+        model_dir = tempfile.mkdtemp()
 
     # Preprocess data
     preprocessor = DataPreprocessor(PROCESSED_DATA_DIR, cfg.preprocess.max_length)
@@ -149,6 +159,10 @@ def train_fixed(cfg: DictConfig):
     # Evaluate the model
     eval_model(cfg, model_dir, test_dataloader)
 
+    # Remove temporary model directory if not saving
+    if not cfg.train.save_model:
+        shutil.rmtree(model_dir)
+
 
 def train_model(cfg: DictConfig, model: BERTClass, train_dataloader, val_dataloader, model_dir: str):
     """Train the model.
@@ -160,6 +174,8 @@ def train_model(cfg: DictConfig, model: BERTClass, train_dataloader, val_dataloa
         val_dataloader (DataLoader): DataLoader for validation data.
         model_dir (str): Directory to save model checkpoints.
     """
+    callbacks = []
+
     checkpoint_callback = ModelCheckpoint(
         dirpath=model_dir,
         filename=cfg.train.filename,
@@ -169,17 +185,20 @@ def train_model(cfg: DictConfig, model: BERTClass, train_dataloader, val_dataloa
         mode="min",
         save_weights_only=False,
     )
+    callbacks.append(checkpoint_callback)
 
     early_stopping_callback = EarlyStopping(
         monitor="val_loss", patience=cfg.train.patience, verbose=cfg.train.verbose, mode="min"
     )
+    callbacks.append(early_stopping_callback)
 
     progress_bar = TQDMProgressBar(refresh_rate=cfg.train.refresh_rate)
+    callbacks.append(progress_bar)
 
     accelerator = "gpu" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 
     wandb_logger = WandbLogger(
-        log_model="all",
+        log_model=cfg.train.log_model,
         project=WANDB_PROJECT,
         entity=WANDB_ENTITY,
     )
@@ -188,13 +207,14 @@ def train_model(cfg: DictConfig, model: BERTClass, train_dataloader, val_dataloa
         profiler=cfg.train.profiler,
         precision=cfg.train.precision,
         max_epochs=cfg.train.epochs,
-        callbacks=[early_stopping_callback, checkpoint_callback, progress_bar],
+        callbacks=callbacks,
         accelerator=accelerator,
         devices=cfg.train.devices,
         log_every_n_steps=cfg.train.log_every_n_steps,
         enable_checkpointing=True,
         enable_model_summary=True,
         logger=wandb_logger,
+        default_root_dir=model_dir,
     )
     print(f"Training Config: {cfg}")
 
@@ -210,14 +230,24 @@ def eval_model(cfg: DictConfig, model_dir: str, test_dataloader):
         test_dataloader (DataLoader): DataLoader for test data.
     """
     model_checkpoint_path = os.path.join(model_dir, cfg.train.filename + ".ckpt")
-    model = BERTClass.load_from_checkpoint(model_checkpoint_path)
+    model = BERTClass.load_from_checkpoint(model_checkpoint_path, cfg=cfg)
+    print(f"Loaded model from checkpoint: {model_checkpoint_path}")
+
+    wandb_logger = WandbLogger(
+        project=WANDB_PROJECT,
+        entity=WANDB_ENTITY,
+    )
 
     trainer = Trainer(
         accelerator=("gpu" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"),
         devices=cfg.train.devices,
+        logger=wandb_logger,
     )
 
-    trainer.test(model, dataloaders=test_dataloader)
+    result = trainer.test(model, dataloaders=test_dataloader)
+    for key, value in result[0].items():
+        wandb.log({key: value})
+    return result[0]["test_loss"]
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base="1.2")

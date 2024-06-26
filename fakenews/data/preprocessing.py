@@ -1,12 +1,11 @@
 import os
-
-import hydra
-from omegaconf import DictConfig
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
 from transformers import BertTokenizerFast
+import hydra
+from omegaconf import DictConfig
 
 from fakenews.config import PROCESSED_DATA_DIR, RAW_DATA_DIR
 
@@ -241,7 +240,35 @@ class DataPreprocessor:
 
     def create_prediction_dataloader(self, predict_data_dir, batch_size):
         """
-        Creates DataLoader object for prediction data.
+        Creates DataLoader object for prediction data from a directory.
+
+        Args:
+            predict_data_dir (str): Directory where prediction data is stored.
+            batch_size (int): The batch size for DataLoader.
+
+        Returns:
+            DataLoader: DataLoader object for prediction data.
+        """
+        predict_data = self.load_preprocessed_data(predict_data_dir, file_name="predict_data.csv")
+        titles = predict_data["title"].tolist()
+        return self._create_dataloader(titles, batch_size)
+
+    def create_prediction_dataloader_from_df(self, df, batch_size):
+        """
+        Creates DataLoader object for prediction data from a DataFrame.
+
+        Args:
+            df (pd.DataFrame): DataFrame containing prediction data.
+            batch_size (int): The batch size for DataLoader.
+
+        Returns:
+            DataLoader: DataLoader object for prediction data.
+        """
+        return self._create_dataloader(df["title"].tolist(), batch_size)
+
+    def _create_dataloader(self, titles, batch_size):
+        """
+        Creates a DataLoader from a list of titles.
 
         Args:
             titles (list): List of titles to be tokenized and converted to DataLoader.
@@ -250,9 +277,6 @@ class DataPreprocessor:
         Returns:
             DataLoader: DataLoader object for prediction data.
         """
-        # Create DataLoader for prediction data
-        predict_data = self.load_preprocessed_data(predict_data_dir, file_name="predict_data.csv")
-        titles = predict_data["title"].tolist()
         tokens = self.tokenize_data(titles)
         seq = torch.tensor(tokens["input_ids"])
         mask = torch.tensor(tokens["attention_mask"])
@@ -260,6 +284,21 @@ class DataPreprocessor:
         predict_sampler = SequentialSampler(predict_data)
         predict_dataloader = DataLoader(predict_data, sampler=predict_sampler, batch_size=batch_size)
         return predict_dataloader
+
+    def preprocess_csv(self, csv_path):
+        """
+        Preprocesses a CSV file containing titles.
+
+        Args:
+            csv_path (str): Path to the CSV file.
+
+        Returns:
+            pd.DataFrame: DataFrame containing preprocessed titles.
+        """
+        data = pd.read_csv(csv_path)
+        data = data.dropna(subset=["title"])  # Drop rows where title is NaN
+        data = data.reset_index(drop=True)  # Reset index to get row indices without column name
+        return data
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base="1.2")

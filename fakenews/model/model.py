@@ -26,7 +26,6 @@ class BERTClass(pl.LightningModule):
             cfg (DictConfig): Configuration composed by Hydra.
         """
         super(BERTClass, self).__init__()
-        self.save_hyperparameters(cfg)
         self.bert = AutoModel.from_pretrained(cfg.model.name)
         self.dropout = nn.Dropout(cfg.model.dropout_rate)
         self.relu = nn.ReLU()
@@ -34,6 +33,9 @@ class BERTClass(pl.LightningModule):
         self.fc2 = nn.Linear(cfg.model.intermediate_size, cfg.model.output_size)
         self.softmax = nn.LogSoftmax(dim=1)
         self.criterion = nn.NLLLoss()
+        self.lr = cfg.train.lr
+        self.dropout_rate = cfg.model.dropout_rate
+        self.batch_size = cfg.train.batch_size
         self.test_preds = []
         self.test_labels = []
 
@@ -70,9 +72,9 @@ class BERTClass(pl.LightningModule):
         _, loss, acc = self._get_preds_loss_accuracy(batch)
         self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         self.log("train_acc", acc, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        self.log("lr", self.hparams.train.lr)
-        self.log("dropout_rate", self.hparams.model.dropout_rate)
-        self.log("batch_size", self.hparams.train.batch_size)
+        self.log("lr", self.lr)
+        self.log("dropout_rate", self.dropout_rate)
+        self.log("batch_size", self.batch_size)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -134,7 +136,7 @@ class BERTClass(pl.LightningModule):
         Returns:
             The configured optimizer.
         """
-        return torch.optim.AdamW(self.parameters(), lr=self.hparams.train.lr)
+        return torch.optim.AdamW(self.parameters(), lr=self.lr)
 
     def _get_preds_loss_accuracy(self, batch):
         """Convenience function since train/valid/test steps are similar."""
