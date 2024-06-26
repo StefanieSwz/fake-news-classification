@@ -177,9 +177,13 @@ cython_debug/
 
 # wandb
 /wandb
+/artifacts
 
 # torch lightning
 /lightning_logs
 
 # VSC
 .vscode/
+
+# torchserve
+/logs

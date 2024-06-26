@@ -39,7 +39,7 @@ def predict(cfg: DictConfig):
     predict_dataloader = preprocessor.create_prediction_dataloader(PREDICT_DATA_DIR, batch_size=cfg.train.batch_size)
 
     # Load the trained model
-    model = BERTClass.load_from_checkpoint(os.path.join(artifact_dir, "model.ckpt"))
+    model = BERTClass.load_from_checkpoint(os.path.join(artifact_dir, "model.ckpt"), cfg=cfg)
 
     # Determine the device (CPU, GPU, MPS)
     device = torch.device(

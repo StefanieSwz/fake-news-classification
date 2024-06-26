@@ -87,6 +87,11 @@ wandb_registry:
 predict:
 	$(PYTHON_INTERPRETER) fakenews/model/predict.py ${ARGS}
 
+## Make
+.PHONY: transform_model
+transform_model:
+	$(PYTHON_INTERPRETER) fakenews/model/transform_model.py ${ARGS}
+
 
 #################################################################################
 # Self Documenting Commands                                                     #

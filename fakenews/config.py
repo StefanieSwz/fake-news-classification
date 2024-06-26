@@ -24,6 +24,8 @@ EXTERNAL_DATA_DIR = DATA_DIR / "external"
 PREDICT_DATA_DIR = DATA_DIR / "predict"
 
 MODELS_DIR = PROJ_ROOT / "models"
+BEST_MODEL = MODELS_DIR / "best_model"
+DEPLOY_MODEL = MODELS_DIR / "deploy"
 
 REPORTS_DIR = PROJ_ROOT / "reports"
 FIGURES_DIR = REPORTS_DIR / "figures"
