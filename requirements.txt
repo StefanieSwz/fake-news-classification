@@ -22,4 +22,3 @@ PyYAML==6.0
 starlette==0.37.2
 kaggle==1.6.14
 torch-model-archiver==0.11.0
-nvgpu==0.10.0
