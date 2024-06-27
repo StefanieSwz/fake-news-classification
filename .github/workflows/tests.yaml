@@ -33,8 +33,8 @@ jobs:
       run: |
         pytest -v
 
+    - uses: iterative/setup-dvc@v1
     - name: Get data
-      uses: iterative/setup-dvc@v1
       run: dvc pull
       env:
-        GDRIVE_CREDENTIALS_DATA: ${{ secrets.GDRIVE_CREDENTIALS_DATA }}`
+        GDRIVE_CREDENTIALS_DATA: ${{ secrets.GDRIVE_CREDENTIALS_DATA }}
