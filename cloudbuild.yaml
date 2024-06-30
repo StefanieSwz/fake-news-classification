@@ -33,9 +33,10 @@ steps:
     'push',
     'europe-west3-docker.pkg.dev/mlops-fakenews/mlops-fakenews-container/predict:latest'
   ]
+#logsBucket: 'gs://mlops-logs-bucket'
 options:
   logging: CLOUD_LOGGING_ONLY
-  logsBucket: gs://mlops-fakenews_cloudbuild/logs/
+
 
 
 # This was a test to see if the cache was working
