@@ -37,7 +37,7 @@ RUN pip install -r requirements.txt --no-cache-dir
 RUN pip install dvc[gs] google-cloud-storage google-cloud-secret-manager
 
 # Download data from Google Cloud Storage bucket
-RUN gsutil cp -r gs://mlops-lmu-data-bucket/data /data/
+#RUN gsutil cp -r gs://mlops-lmu-data-bucket/data /data/
 
 # Set the Python path
 ENV PYTHONPATH="${PYTHONPATH}:/fakenews"
