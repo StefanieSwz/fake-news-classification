@@ -10,13 +10,12 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, TQDMProg
 from pytorch_lightning.loggers import WandbLogger
 import torch
 import yaml
-from google.cloud import secretmanager
+from google.cloud import secretmanager, storage
 from fakenews.data.preprocessing import DataPreprocessor
 from fakenews.model.model import BERTClass
 import wandb
 from fakenews.config import (
     MODELS_DIR,
-    PROCESSED_DATA_DIR,
 )
 
 
@@ -42,6 +41,40 @@ if not WANDB_PROJECT:
     raise ValueError("WANDB_PROJECT environment variable is not set.")
 if not WANDB_ENTITY:
     raise ValueError("WANDB_ENTITY environment variable is not set.")
+
+
+def get_blob_from_gcs(bucket_name, blob_name):
+    """Fetch a blob from Google Cloud Storage and return it as bytes."""
+    client = storage.Client()
+    bucket = client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
+    return blob.download_as_bytes()
+
+
+def setup_data_directories():
+    """Fetch data from GCS and set up temporary directories for data."""
+    # Create temporary directories
+    raw_data_dir = tempfile.mkdtemp()
+    processed_data_dir = tempfile.mkdtemp()
+
+    # Access raw and processed data from Google Cloud Storage
+    raw_data = get_blob_from_gcs("mlops-lmu-data-bucket", "data/raw/fake-news-classification.zip")
+    processed_data = get_blob_from_gcs("mlops-lmu-data-bucket", "data/processed/preprocessed_data.csv")
+
+    # Save raw and processed data to temporary files
+    raw_data_path = os.path.join(raw_data_dir, "fake-news-classification.zip")
+    processed_data_path = os.path.join(processed_data_dir, "preprocessed_data.csv")
+
+    with open(raw_data_path, "wb") as f:
+        f.write(raw_data)
+
+    with open(processed_data_path, "wb") as f:
+        f.write(processed_data)
+
+    return processed_data_dir, raw_data_dir
+
+
+PROCESSED_DATA_DIR, RAW_DATA_DIR = setup_data_directories()
 
 
 def update_config_with_sweep(cfg: DictConfig, sweep_config: dict) -> DictConfig:
