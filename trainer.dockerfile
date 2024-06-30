@@ -12,7 +12,7 @@ RUN apt-get update && \
 COPY requirements.txt requirements.txt
 COPY pyproject.toml pyproject.toml
 COPY fakenews/ fakenews/
-COPY data/ data/
+#COPY data/ data/
 COPY config/ config/
 COPY .env /.env
 
@@ -24,6 +24,10 @@ RUN pip install -r requirements.txt --no-cache-dir
 
 # Install DVC and Google Cloud Storage dependencies
 RUN pip install dvc[gs] google-cloud-storage
+
+# Download data from Google Cloud Storage bucket
+RUN gsutil cp -r gs://mlops-lmu-data-bucket/data data/
+
 # Set the Python path
 ENV PYTHONPATH="${PYTHONPATH}:/fakenews"
 
