@@ -10,6 +10,8 @@ steps:
     '-f',
     './trainer.dockerfile'
   ]
+  secretEnv:
+    - 'SERVICE_ACCOUNT_CREDENTIALS'
 - name: 'gcr.io/cloud-builders/docker'
   id: 'Push container image'
   args: [
@@ -48,6 +50,8 @@ availableSecrets:
     env: 'WANDB_PROJECT'
   - versionName: 'projects/mlops-fakenews/secrets/WANDB_ENTITY/versions/latest'
     env: 'WANDB_ENTITY'
+  - versionName: 'projects/mlops-fakenews/secrets/SERVICE_ACCOUNT_CREDENTIALS/versions/latest'
+    env: 'SERVICE_ACCOUNT_CREDENTIALS'
 #logsBucket: 'gs://mlops-logs-bucket'
 options:
   logging: CLOUD_LOGGING_ONLY
