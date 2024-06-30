@@ -29,6 +29,8 @@ steps:
     '-f',
     './predict.dockerfile'
   ]
+  secretEnv:
+    - 'SERVICE_ACCOUNT_CREDENTIALS'
 - name: 'gcr.io/cloud-builders/docker'
   id: 'Push container image predictor'
   args: [
