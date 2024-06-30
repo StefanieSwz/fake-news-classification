@@ -3,11 +3,14 @@ FROM python:3.11-slim
 
 # Install Python
 RUN apt-get update && \
-    apt-get install --no-install-recommends -y build-essential gcc && \
+    apt-get install --no-install-recommends -y build-essential gcc curl gnupg apt-transport-https && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install DVC and Google Cloud Storage dependencies
-#RUN pip install dvc[gs]
+# Install Google Cloud SDK
+RUN curl https://sdk.cloud.google.com | bash && \
+    /root/google-cloud-sdk/install.sh && \
+    /root/google-cloud-sdk/bin/gcloud components install gsutil
+
 
 COPY requirements.txt requirements.txt
 COPY pyproject.toml pyproject.toml
