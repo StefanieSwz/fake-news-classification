@@ -33,9 +33,25 @@ steps:
     'push',
     'europe-west3-docker.pkg.dev/mlops-fakenews/mlops-fakenews-container/predict:latest'
   ]
+- name: python:3.11-slim
+  entrypoint: python
+  args: ['fakenews/model/train_model.py']
+  secretEnv:
+    - 'WANDB_API_KEY'
+    - 'WANDB_PROJECT'
+    - 'WANDB_ENTITY'
+availableSecrets:
+  secretManager:
+  - versionName: 'projects/mlops-fakenews/secrets/WANDB_API_KEY/versions/latest'
+    env: 'WANDB_API_KEY'
+  - versionName: 'projects/mlops-fakenews/secrets/WANDB_PROJECT/versions/latest'
+    env: 'WANDB_PROJECT'
+  - versionName: 'projects/mlops-fakenews/secrets/WANDB_ENTITY/versions/latest'
+    env: 'WANDB_ENTITY'
 #logsBucket: 'gs://mlops-logs-bucket'
 options:
   logging: CLOUD_LOGGING_ONLY
+
 
 
 
