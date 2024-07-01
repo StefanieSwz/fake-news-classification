@@ -10,102 +10,45 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, TQDMProg
 from pytorch_lightning.loggers import WandbLogger
 import torch
 import yaml
-from google.cloud import secretmanager, storage
 from fakenews.data.preprocessing import DataPreprocessor
 from fakenews.model.model import BERTClass
 import wandb
-from fakenews.config import (
-    MODELS_DIR,
-)
+from fakenews.config import MODELS_DIR, access_secret_version, setup_data_directories
 
 
-def access_secret_version(secret_id):
-    """Access the latest version of a secret from Secret Manager."""
-    client = secretmanager.SecretManagerServiceClient()
-    project_id = "mlops-fakenews"  # Replace with your project ID
-    secret_version_id = "latest"
-    secret_version_name = f"projects/{project_id}/secrets/{secret_id}/versions/{secret_version_id}"
-    response = client.access_secret_version(name=secret_version_name)
-    return response.payload.data.decode("UTF-8")
+def preprocess_data(cfg: DictConfig, processed_data_dir):
+    """Preprocess data and return dataloaders."""
+    preprocessor = DataPreprocessor(processed_data_dir, cfg.preprocess.max_length)
+    train_dataloader, val_dataloader, test_dataloader = preprocessor.process(
+        batch_size=cfg.train.batch_size,
+        test_size=cfg.train.test_size,
+        val_size=cfg.train.val_size,
+        random_state=cfg.train.random_state,
+        processed_data_dir=processed_data_dir,
+    )
+    return train_dataloader, val_dataloader, test_dataloader
 
 
-# Fetch secrets using Secret Manager if they are not set
-WANDB_API_KEY = access_secret_version("WANDB_API_KEY")
-WANDB_PROJECT = access_secret_version("WANDB_PROJECT")
-WANDB_ENTITY = access_secret_version("WANDB_ENTITY")
-
-# Validate that all required environment variables are present
-if not WANDB_API_KEY:
-    raise ValueError("WANDB_API_KEY environment variable is not set.")
-if not WANDB_PROJECT:
-    raise ValueError("WANDB_PROJECT environment variable is not set.")
-if not WANDB_ENTITY:
-    raise ValueError("WANDB_ENTITY environment variable is not set.")
+def create_model_directory(cfg: DictConfig, models_dir):
+    """Create a directory to save the model."""
+    if cfg.train.save_model:
+        date_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+        model_dir = os.path.join(models_dir, date_str)
+        os.makedirs(model_dir, exist_ok=True)
+    else:
+        model_dir = tempfile.mkdtemp()
+    return model_dir
 
 
-def get_blob_from_gcs(bucket_name, blob_name):
-    """Fetch a blob from Google Cloud Storage and return it as bytes."""
-    client = storage.Client()
-    bucket = client.bucket(bucket_name)
-    blob = bucket.blob(blob_name)
-    return blob.download_as_bytes()
-
-
-def setup_data_directories():
-    """Fetch data from GCS and set up temporary directories for data."""
-    # Create temporary directories
-    raw_data_dir = tempfile.mkdtemp()
-    processed_data_dir = tempfile.mkdtemp()
-
-    # Access raw and processed data from Google Cloud Storage
-    raw_data = get_blob_from_gcs("mlops-lmu-data-bucket", "data/raw/fake-news-classification.zip")
-    processed_data = get_blob_from_gcs("mlops-lmu-data-bucket", "data/processed/preprocessed_data.csv")
-
-    # Save raw and processed data to temporary files
-    raw_data_path = os.path.join(raw_data_dir, "fake-news-classification.zip")
-    processed_data_path = os.path.join(processed_data_dir, "preprocessed_data.csv")
-
-    with open(raw_data_path, "wb") as f:
-        f.write(raw_data)
-
-    with open(processed_data_path, "wb") as f:
-        f.write(processed_data)
-
-    return processed_data_dir, raw_data_dir
-
-
-PROCESSED_DATA_DIR, RAW_DATA_DIR = setup_data_directories()
-
-
-def update_config_with_sweep(cfg: DictConfig, sweep_config: dict) -> DictConfig:
-    """Update Hydra configuration with sweep parameters.
-
-    Args:
-        cfg (DictConfig): Original Hydra configuration.
-        sweep_config (dict): Sweep configuration from wandb.
-
-    Returns:
-        DictConfig: Updated Hydra configuration.
-    """
-    cfg.train.lr = sweep_config["train.lr"]
-    cfg.train.batch_size = sweep_config["train.batch_size"]
-    cfg.model.dropout_rate = sweep_config["model.dropout_rate"]
-    return cfg
-
-
-def run_sweep(cfg: DictConfig):
-    """Run a wandb sweep.
-
-    Args:
-        cfg (DictConfig): Hydra configuration.
-    """
+def run_sweep(cfg: DictConfig, processed_data_dir, models_dir, wandb_project, wandb_entity):
+    """Run a wandb sweep."""
     # Load sweep configuration from YAML file
     with open(os.path.join(os.path.dirname(__file__), "../../config/sweep.yaml"), "r") as file:
         sweep_config = yaml.safe_load(file)
         print(sweep_config)
 
     # Initialize wandb sweep
-    sweep_id = wandb.sweep(sweep_config, project=WANDB_PROJECT, entity=WANDB_ENTITY)
+    sweep_id = wandb.sweep(sweep_config, project=wandb_project, entity=wandb_entity)
 
     def train():
         """Function to be called by wandb agent for training."""
@@ -130,31 +73,20 @@ def run_sweep(cfg: DictConfig):
         # Print the updated configuration
         print(f"Training Config: {OmegaConf.to_container(cfg, resolve=True)}")
 
-        # Create a dated directory within MODELS_DIR if saving is enabled
-        if cfg.train.save_model:
-            date_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-            model_dir = os.path.join(MODELS_DIR, date_str)
-            os.makedirs(model_dir, exist_ok=True)
-        else:
-            model_dir = tempfile.mkdtemp()
+        # Create model directory
+        model_dir = create_model_directory(cfg, models_dir)
 
         # Preprocess data
-        preprocessor = DataPreprocessor(PROCESSED_DATA_DIR, cfg.preprocess.max_length)
-        train_dataloader, val_dataloader, test_dataloader = preprocessor.process(
-            batch_size=cfg.train.batch_size,
-            test_size=cfg.train.test_size,
-            val_size=cfg.train.val_size,
-            random_state=cfg.train.random_state,
-            processed_data_dir=PROCESSED_DATA_DIR,
-        )
+        train_dataloader, val_dataloader, test_dataloader = preprocess_data(cfg, processed_data_dir)
 
+        # Initialize the model
         model = BERTClass(cfg)
 
         # Train the model
-        train_model(cfg, model, train_dataloader, val_dataloader, model_dir)
+        train_model(cfg, model, train_dataloader, val_dataloader, model_dir, wandb_project, wandb_entity)
 
         # Evaluate the model
-        eval_model(cfg, model_dir, test_dataloader)
+        eval_model(cfg, model_dir, test_dataloader, wandb_project, wandb_entity)
 
         # Remove temporary model directory if not saving
         if not cfg.train.save_model:
@@ -164,70 +96,41 @@ def run_sweep(cfg: DictConfig):
     wandb.agent(sweep_id, function=train, count=cfg.train.num_runs)
 
 
-def train_fixed(cfg: DictConfig):
-    """Train the model with fixed configuration.
-
-    Args:
-        cfg (DictConfig): Hydra configuration.
-    """
-    wandb.login(key=WANDB_API_KEY)
+def train_fixed(cfg: DictConfig, processed_data_dir, models_dir, wandb_api_key, wandb_project, wandb_entity):
+    """Train the model with fixed configuration."""
+    wandb.login(key=wandb_api_key)
     wandb.init(
-        project=WANDB_PROJECT,
-        entity=WANDB_ENTITY,
-        config={
-            "train.lr": cfg.train.lr,
-            "train.batch_size": cfg.train.batch_size,
-            "train.epochs": cfg.train.epochs,
-            "model.dropout_rate": cfg.model.dropout_rate,
-        },
+        project=wandb_project,
+        entity=wandb_entity,
     )
-    config = wandb.config
 
-    # Merge wandb.config into the Hydra cfg
-    cfg = update_config_with_sweep(cfg, config)
+    # Print the configuration
     print(f"Training Config: {OmegaConf.to_container(cfg, resolve=True)}")
 
-    # Create a dated directory within MODELS_DIR if saving is enabled
-    if cfg.train.save_model:
-        date_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-        model_dir = os.path.join(MODELS_DIR, date_str)
-        os.makedirs(model_dir, exist_ok=True)
-    else:
-        model_dir = tempfile.mkdtemp()
+    # Create model directory
+    model_dir = create_model_directory(cfg, models_dir)
 
     # Preprocess data
-    preprocessor = DataPreprocessor(PROCESSED_DATA_DIR, cfg.preprocess.max_length)
-    train_dataloader, val_dataloader, test_dataloader = preprocessor.process(
-        batch_size=cfg.train.batch_size,
-        test_size=cfg.train.test_size,
-        val_size=cfg.train.val_size,
-        random_state=cfg.train.random_state,
-        processed_data_dir=PROCESSED_DATA_DIR,
-    )
+    train_dataloader, val_dataloader, test_dataloader = preprocess_data(cfg, processed_data_dir)
 
+    # Initialize the model
     model = BERTClass(cfg)
 
     # Train the model
-    train_model(cfg, model, train_dataloader, val_dataloader, model_dir)
+    train_model(cfg, model, train_dataloader, val_dataloader, model_dir, wandb_project, wandb_entity)
 
     # Evaluate the model
-    eval_model(cfg, model_dir, test_dataloader)
+    eval_model(cfg, model_dir, test_dataloader, wandb_project, wandb_entity)
 
     # Remove temporary model directory if not saving
     if not cfg.train.save_model:
         shutil.rmtree(model_dir)
 
 
-def train_model(cfg: DictConfig, model: BERTClass, train_dataloader, val_dataloader, model_dir: str):
-    """Train the model.
-
-    Args:
-        cfg (DictConfig): Hydra configuration.
-        model (BERTClass): Model to train.
-        train_dataloader (DataLoader): DataLoader for training data.
-        val_dataloader (DataLoader): DataLoader for validation data.
-        model_dir (str): Directory to save model checkpoints.
-    """
+def train_model(
+    cfg: DictConfig, model: BERTClass, train_dataloader, val_dataloader, model_dir: str, wandb_project, wandb_entity
+):
+    """Train the model."""
     callbacks = []
 
     checkpoint_callback = ModelCheckpoint(
@@ -253,8 +156,8 @@ def train_model(cfg: DictConfig, model: BERTClass, train_dataloader, val_dataloa
 
     wandb_logger = WandbLogger(
         log_model=cfg.train.log_model,
-        project=WANDB_PROJECT,
-        entity=WANDB_ENTITY,
+        project=wandb_project,
+        entity=wandb_entity,
     )
 
     trainer = Trainer(
@@ -270,26 +173,19 @@ def train_model(cfg: DictConfig, model: BERTClass, train_dataloader, val_dataloa
         logger=wandb_logger,
         default_root_dir=model_dir,
     )
-    print(f"Training Config: {cfg}")
 
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
 
 
-def eval_model(cfg: DictConfig, model_dir: str, test_dataloader):
-    """Evaluate the model.
-
-    Args:
-        cfg (DictConfig): Hydra configuration.
-        model_dir (str): Directory where the model checkpoints are saved.
-        test_dataloader (DataLoader): DataLoader for test data.
-    """
+def eval_model(cfg: DictConfig, model_dir: str, test_dataloader, wandb_project, wandb_entity):
+    """Evaluate the model."""
     model_checkpoint_path = os.path.join(model_dir, cfg.train.filename + ".ckpt")
     model = BERTClass.load_from_checkpoint(model_checkpoint_path, cfg=cfg)
     print(f"Loaded model from checkpoint: {model_checkpoint_path}")
 
     wandb_logger = WandbLogger(
-        project=WANDB_PROJECT,
-        entity=WANDB_ENTITY,
+        project=wandb_project,
+        entity=wandb_entity,
     )
 
     trainer = Trainer(
@@ -306,15 +202,32 @@ def eval_model(cfg: DictConfig, model_dir: str, test_dataloader):
 
 @hydra.main(config_path="../../config", config_name="config", version_base="1.2")
 def main(cfg: DictConfig):
-    """Main function to handle command-line arguments and run appropriate training function.
-
-    Args:
-        cfg (DictConfig): Hydra configuration.
-    """
-    if cfg.train.sweep:
-        run_sweep(cfg)
+    """Main function to handle command-line arguments and run appropriate training function."""
+    if cfg.train.local_wandb:
+        from fakenews.config import WANDB_API_KEY, WANDB_PROJECT, WANDB_ENTITY
     else:
-        train_fixed(cfg)
+        # Fetch secrets using Secret Manager if they are not set
+        WANDB_API_KEY = access_secret_version("WANDB_API_KEY")
+        WANDB_PROJECT = access_secret_version("WANDB_PROJECT")
+        WANDB_ENTITY = access_secret_version("WANDB_ENTITY")
+
+    # Validate that all required environment variables are present
+    if not WANDB_API_KEY:
+        raise ValueError("WANDB_API_KEY environment variable is not set.")
+    if not WANDB_PROJECT:
+        raise ValueError("WANDB_PROJECT environment variable is not set.")
+    if not WANDB_ENTITY:
+        raise ValueError("WANDB_ENTITY environment variable is not set.")
+
+    if cfg.train.local_data:
+        from fakenews.config import PROCESSED_DATA_DIR
+    else:
+        _, PROCESSED_DATA_DIR, _ = setup_data_directories()
+
+    if cfg.train.sweep:
+        run_sweep(cfg, PROCESSED_DATA_DIR, MODELS_DIR, WANDB_PROJECT, WANDB_ENTITY)
+    else:
+        train_fixed(cfg, PROCESSED_DATA_DIR, MODELS_DIR, WANDB_API_KEY, WANDB_PROJECT, WANDB_ENTITY)
 
 
 if __name__ == "__main__":
