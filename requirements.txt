@@ -23,3 +23,8 @@ starlette==0.37.2
 kaggle==1.6.14
 torch-model-archiver==0.11.0
 google-cloud-secret-manager==2.20.0
+streamlit==1.36.0
+matplotlib==3.9.0
+watchdog==4.0.1
+seaborn==0.13.2
+locust==2.29.1

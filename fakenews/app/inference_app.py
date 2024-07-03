@@ -101,7 +101,7 @@ async def predict(
             result.append(
                 {
                     "title": title,
-                    "prediction": "real" if pred == 1 else "fake",
+                    "prediction": "real" if pred == 0 else "fake",
                     "predicted_label": pred,
                     "probability": prob[1] if pred == 1 else prob[0],
                 }
@@ -136,7 +136,7 @@ async def predict_single(
             _, pred = torch.max(outputs, dim=1)
             prediction = {
                 "title": title.title,
-                "prediction": "real" if pred.item() == 1 else "fake",
+                "prediction": "real" if pred.item() == 0 else "fake",
                 "predicted_label": pred.item(),
                 "probability": probs[0][1].item() if pred.item() == 1 else probs[0][0].item(),
             }

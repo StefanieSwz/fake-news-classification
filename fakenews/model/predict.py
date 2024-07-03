@@ -89,7 +89,7 @@ def predict(cfg: DictConfig):
             result.append(
                 {
                     "title": title,
-                    "prediction": "real" if pred == 1 else "fake",
+                    "prediction": "real" if pred == 0 else "fake",
                     "predicted_label": pred,
                     "probability": prob[1] if pred == 1 else prob[0],
                 }
