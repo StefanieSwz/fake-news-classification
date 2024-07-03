@@ -4,7 +4,8 @@ import tempfile
 import pandas as pd
 import hydra
 from fastapi import FastAPI, UploadFile, File, Query
-from starlette.responses import JSONResponse
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 import torch
 import wandb
 from fakenews.config import (
@@ -17,6 +18,10 @@ from fakenews.data.preprocessing import DataPreprocessor
 from fakenews.model.model import BERTClass
 
 app = FastAPI()
+
+
+class Title(BaseModel):
+    title: str
 
 
 @app.on_event("startup")
@@ -33,10 +38,14 @@ async def startup_event():
 
     # Use the model artifact from wandb
     artifact = run.use_artifact(f"{WANDB_ENTITY}/model-registry/{MODEL_REGISTRY}:best", type="model")
-    artifact_dir = artifact.download()
+
+    # Download the artifact to a temporary directory
+    global artifact_dir
+    artifact_dir = tempfile.TemporaryDirectory()
+    artifact.download(root=artifact_dir.name)
 
     # Load the trained model
-    model = BERTClass.load_from_checkpoint(os.path.join(artifact_dir, "model.ckpt"), cfg=cfg)
+    model = BERTClass.load_from_checkpoint(os.path.join(artifact_dir.name, "model.ckpt"), cfg=cfg)
 
     # Determine the device (CPU, GPU, MPS)
     device = torch.device(
@@ -82,12 +91,56 @@ async def predict(
             for batch in predict_dataloader:
                 sent_id, mask = [t.to(device) for t in batch]
                 outputs = model(sent_id=sent_id, mask=mask)
+                probs = torch.nn.functional.softmax(outputs, dim=1)
                 _, preds = torch.max(outputs, dim=1)
-                predictions.extend(preds.tolist())
+                predictions.extend(zip(data["title"].tolist(), preds.tolist(), probs.tolist()))
 
         # Convert predictions to a DataFrame and then to JSON
-        predictions_df = pd.DataFrame(predictions, columns=["prediction"])
-        return JSONResponse(predictions_df.to_dict(orient="records"))
+        result = []
+        for title, pred, prob in predictions:
+            result.append(
+                {
+                    "title": title,
+                    "prediction": "real" if pred == 1 else "fake",
+                    "predicted_label": pred,
+                    "probability": prob[1] if pred == 1 else prob[0],
+                }
+            )
+        return JSONResponse(result)
+
+
+@app.post("/predict_single/")
+async def predict_single(
+    title: Title, max_length: int = Query(default=None, description="Max length for preprocessing")
+):
+    """Generate prediction for a single title."""
+    global model, device, cfg
+
+    max_length = max_length or cfg.preprocess.max_length
+
+    # Initialize the DataPreprocessor with the default max_length from config
+    preprocessor = DataPreprocessor(data_dir=None, max_length=max_length)
+
+    # Transform the input JSON to a DataFrame with a title column
+    data = pd.DataFrame([title.dict()])
+
+    # Prepare DataLoader for the single title
+    predict_dataloader = preprocessor.create_prediction_dataloader_from_df(data, batch_size=1)
+
+    # Predict
+    with torch.no_grad():
+        for batch in predict_dataloader:
+            sent_id, mask = [t.to(device) for t in batch]
+            outputs = model(sent_id=sent_id, mask=mask)
+            probs = torch.nn.functional.softmax(outputs, dim=1)
+            _, pred = torch.max(outputs, dim=1)
+            prediction = {
+                "title": title.title,
+                "prediction": "real" if pred.item() == 1 else "fake",
+                "predicted_label": pred.item(),
+                "probability": probs[0][1].item() if pred.item() == 1 else probs[0][0].item(),
+            }
+            return JSONResponse(prediction)
 
 
 if __name__ == "__main__":

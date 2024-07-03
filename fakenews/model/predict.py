@@ -75,13 +75,26 @@ def predict(cfg: DictConfig):
         predictions = []
         with torch.no_grad():
             for batch in predict_dataloader:
-                sent_id, mask = [t.to(device) for t in batch]
-                outputs = model(sent_id=sent_id, mask=mask)
+                input_ids, attention_mask = batch
+                input_ids = input_ids.to(device)
+                attention_mask = attention_mask.to(device)
+                outputs = model(sent_id=input_ids, mask=attention_mask)
+                probs = torch.nn.functional.softmax(outputs, dim=1)
                 _, preds = torch.max(outputs, dim=1)
-                predictions.extend(preds.tolist())
+                predictions.extend(zip(preprocessor.titles, preds.tolist(), probs.tolist()))
 
-    # Print predictions
-    print(predictions)
+        # Convert predictions to a DataFrame and then to JSON
+        result = []
+        for title, pred, prob in predictions:
+            result.append(
+                {
+                    "title": title,
+                    "prediction": "real" if pred == 1 else "fake",
+                    "predicted_label": pred,
+                    "probability": prob[1] if pred == 1 else prob[0],
+                }
+            )
+        return print(result)
 
 
 if __name__ == "__main__":

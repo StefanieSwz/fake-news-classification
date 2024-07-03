@@ -251,6 +251,7 @@ class DataPreprocessor:
         """
         predict_data = self.load_preprocessed_data(predict_data_dir, file_name="predict_data.csv")
         titles = predict_data["title"].tolist()
+        self.titles = titles  # Store titles to access them during prediction
         return self._create_dataloader(titles, batch_size)
 
     def create_prediction_dataloader_from_df(self, df, batch_size):
@@ -264,7 +265,9 @@ class DataPreprocessor:
         Returns:
             DataLoader: DataLoader object for prediction data.
         """
-        return self._create_dataloader(df["title"].tolist(), batch_size)
+        titles = df["title"].tolist()
+        self.titles = titles  # Store titles to access them during prediction
+        return self._create_dataloader(titles, batch_size)
 
     def _create_dataloader(self, titles, batch_size):
         """
