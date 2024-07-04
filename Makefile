@@ -77,20 +77,30 @@ generate:
 train:
 	$(PYTHON_INTERPRETER) fakenews/model/train_model.py ${ARGS}
 
-## Make
+## Make wandb_registry
 .PHONY: wandb_registry
 wandb_registry:
 	$(PYTHON_INTERPRETER) fakenews/model/wandb_registry.py ${ARGS}
 
-## Make
+## Make predict
 .PHONY: predict
 predict:
 	$(PYTHON_INTERPRETER) fakenews/model/predict.py ${ARGS}
 
-## Make
+## Make transform_model
 .PHONY: transform_model
 transform_model:
 	$(PYTHON_INTERPRETER) fakenews/model/transform_model.py ${ARGS}
+
+## Make test_apis
+.PHONY: test_apis
+test_apis:
+	$(PYTHON_INTERPRETER) -m pytest tests/integrationtests/test_apis.py ${ARGS}
+
+## Make test_load
+.PHONY: test_load
+test_load:
+	locust -f $(CURDIR)/tests/performancetests/locustfile.py ${ARGS}
 
 
 #################################################################################

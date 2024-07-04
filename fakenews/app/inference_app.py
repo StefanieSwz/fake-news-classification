@@ -24,9 +24,16 @@ class Title(BaseModel):
     title: str
 
 
+# Initialize global variables
+model = None
+device = None
+cfg = None
+artifact_dir = None
+
+
 @app.on_event("startup")
 async def startup_event():
-    global model, device, cfg
+    global model, device, cfg, artifact_dir
 
     # Initialize wandb
     wandb.login(key=WANDB_API_KEY)
@@ -40,7 +47,6 @@ async def startup_event():
     artifact = run.use_artifact(f"{WANDB_ENTITY}/model-registry/{MODEL_REGISTRY}:best", type="model")
 
     # Download the artifact to a temporary directory
-    global artifact_dir
     artifact_dir = tempfile.TemporaryDirectory()
     artifact.download(root=artifact_dir.name)
 
@@ -64,7 +70,11 @@ async def predict(
     max_length: int = Query(default=None, description="Max length for preprocessing"),
 ):
     """Generate predictions for the uploaded CSV file."""
-    global model, device, cfg
+    global model, device, cfg, artifact_dir
+
+    # Ensure model, device, and cfg are initialized
+    if model is None or device is None or cfg is None or artifact_dir is None:
+        await startup_event()
 
     # Use parameters from the request or fallback to Hydra config
     batch_size = batch_size or cfg.train.batch_size
@@ -114,7 +124,11 @@ async def predict_single(
     title: Title, max_length: int = Query(default=None, description="Max length for preprocessing")
 ):
     """Generate prediction for a single title."""
-    global model, device, cfg
+    global model, device, cfg, artifact_dir
+
+    # Ensure model, device, and cfg are initialized
+    if model is None or device is None or cfg is None or artifact_dir is None:
+        await startup_event()
 
     max_length = max_length or cfg.preprocess.max_length
 
