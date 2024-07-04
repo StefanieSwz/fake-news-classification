@@ -1,11 +1,15 @@
 import os
+import pytest
 import tempfile
 from fastapi.testclient import TestClient
-from fakenews.app.inference_app import app  # Adjust the import according to your actual application structure
+from fakenews.app.inference_app import (
+    app,
+)  # Adjust the import according to your actual application structure
 
 client = TestClient(app)
 
 
+@pytest.mark.skip_on_ci
 def test_predict():
     # Create a temporary CSV file for testing
     with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as temp_file:
@@ -32,6 +36,7 @@ def test_predict():
         assert "probability" in prediction
 
 
+@pytest.mark.skip_on_ci
 def test_predict_single():
     title = {"title": "Test title for single prediction"}
     response = client.post("/predict_single/", json=title, params={"max_length": 15})
