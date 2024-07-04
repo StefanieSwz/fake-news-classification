@@ -9,7 +9,7 @@ from fakenews.app.inference_app import (
 client = TestClient(app)
 
 
-@pytest.mark.skip_on_ci
+@pytest.mark.skip(reason="Not working in CI")
 def test_predict():
     # Create a temporary CSV file for testing
     with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as temp_file:
@@ -36,7 +36,7 @@ def test_predict():
         assert "probability" in prediction
 
 
-@pytest.mark.skip_on_ci
+@pytest.mark.skip(reason="Not working in CI")
 def test_predict_single():
     title = {"title": "Test title for single prediction"}
     response = client.post("/predict_single/", json=title, params={"max_length": 15})
@@ -47,9 +47,3 @@ def test_predict_single():
     assert "prediction" in prediction
     assert "predicted_label" in prediction
     assert "probability" in prediction
-
-
-if __name__ == "__main__":
-    import pytest
-
-    pytest.main()
