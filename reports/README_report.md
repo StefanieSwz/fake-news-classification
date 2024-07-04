@@ -342,7 +342,8 @@ Generally, we save in wandb the logged parameters, especially for the best run, 
 >
 > Answer:
 
---- question 15 fill here ---
+--- For our project we developed several images: one for training, inference and deployment. For example to run the training docker image locally: `docker build -f trainer.dockerfile . -t trainer:latest` and `docker run --name container_name -v %cd%/models:/models/ trainer:latest model.dropout_rate=0.3 train.batch_size=8`. This mounts the model folder so have the saved weights on the local machine. For running container on GitHub or GCP, we do not mount folder.
+Link to trainer docker file: https://github.com/StefanieSwz/fake-news-classification/blob/main/trainer.dockerfile ---
 
 ### Question 16
 
@@ -357,7 +358,7 @@ Generally, we save in wandb the logged parameters, especially for the best run, 
 >
 > Answer:
 
---- question 16 fill here ---
+--- Debugging method was dependent on group member. Some just used normal code commenting and debugging through throws error messages and others used the python debugger over command line and break points. We did by default simple profiling of our main code at some point that showed that no file had major run time issues, besides the actual training of the NN of course. As this was only du to resource restrictions on local laptop, this was not related to code performance issues, also becuase torch lightning is known for the well structured classes and methods. ---
 
 ## Working in the cloud
 
@@ -513,4 +514,7 @@ Generally, we save in wandb the logged parameters, especially for the best run, 
 >
 > Answer:
 
---- question 27 fill here ---
+--- All together: Initial Project proposal, Initial cookie cutter template and git repo
+Stefanie Schwarz: GitHub owner, setting up dvc and google drive, managing access rights, initial make file, PR reviews for almost all branches, creating docker images for training and prediction, writing large part of tests for data, preprocessing, model and training, set up secrets for continuous integration, write dvc workflow for testing as well as docker trigger workflow in actions, set up GCP project and IAM rolles and compute engine, set up branch protection rules, fill report
+Tobias Brock:
+Anne Gritto: ---
