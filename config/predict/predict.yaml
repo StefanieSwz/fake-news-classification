@@ -5,3 +5,5 @@ metric_name: "score" # validation loss
 higher_is_better: false # lowest validation loss is used for model selection
 link_artifacts: false
 save_best_model: True
+local_wandb: False
+local_data: False

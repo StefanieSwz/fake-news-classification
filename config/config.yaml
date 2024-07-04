@@ -3,3 +3,4 @@ defaults:
   - train: train
   - predict: predict
   - model: model
+  - cloud: cloud
