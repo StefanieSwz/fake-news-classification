@@ -1,5 +1,4 @@
 fastapi==0.111.0
-click==8.1.7
 hydra-core==1.3.2
 loguru==0.7.2
 omegaconf==2.3.0
@@ -22,7 +21,6 @@ PyYAML==6.0
 starlette==0.37.2
 kaggle==1.6.14
 torch-model-archiver==0.11.0
-google-cloud-secret-manager==2.20.0
 streamlit==1.36.0
 matplotlib==3.9.0
 watchdog==4.0.1
@@ -42,3 +40,4 @@ google-cloud-storage==2.17.0
 google-crc32c==1.5.0
 google-resumable-media==2.7.1
 googleapis-common-protos==1.63.1
+evidently==0.4.30

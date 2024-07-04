@@ -16,7 +16,7 @@ def classify_csv(file, backend_url, batch_size, max_length):
         dict or None: The JSON response from the backend containing predictions,
                       or None if the request failed.
     """
-    predict_url = f"{backend_url}/predict/"
+    predict_url = f"{backend_url}/predict_v2/"
     params = {"batch_size": batch_size, "max_length": max_length}
     response = requests.post(predict_url, params=params, files={"file": file}, timeout=10)
     if response.status_code == 200:
@@ -38,7 +38,7 @@ def classify_single(title, backend_url, max_length):
         dict or None: The JSON response from the backend containing the prediction,
                       or None if the request failed.
     """
-    predict_url = f"{backend_url}/predict_single/"
+    predict_url = f"{backend_url}/predict_single_v2/"
     params = {"max_length": max_length}
     response = requests.post(predict_url, params=params, json={"title": title}, timeout=10)
     if response.status_code == 200:
@@ -66,7 +66,12 @@ def main():
     max_length_csv = st.number_input("Max Length for CSV", min_value=1, value=25)
 
     if uploaded_file is not None:
-        result = classify_csv(uploaded_file, backend_url=backend_url, batch_size=batch_size, max_length=max_length_csv)
+        result = classify_csv(
+            uploaded_file,
+            backend_url=backend_url,
+            batch_size=batch_size,
+            max_length=max_length_csv,
+        )
 
         if result is not None:
             # Display the prediction results
