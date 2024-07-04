@@ -187,3 +187,6 @@ cython_debug/
 
 # torchserve
 /logs
+
+# G cloud service account
+service_account_credentials.json

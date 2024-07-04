@@ -40,6 +40,85 @@ def create_model_directory(cfg: DictConfig, models_dir):
     return model_dir
 
 
+def train_model(
+    cfg: DictConfig,
+    model: BERTClass,
+    train_dataloader,
+    val_dataloader,
+    model_dir: str,
+    wandb_project,
+    wandb_entity,
+):
+    """Train the model."""
+    callbacks = []
+
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=model_dir,
+        filename=cfg.train.filename,
+        save_top_k=1,
+        verbose=cfg.train.verbose,
+        monitor="val_loss",
+        mode="min",
+        save_weights_only=False,
+    )
+    callbacks.append(checkpoint_callback)
+
+    early_stopping_callback = EarlyStopping(
+        monitor="val_loss", patience=cfg.train.patience, verbose=cfg.train.verbose, mode="min"
+    )
+    callbacks.append(early_stopping_callback)
+
+    progress_bar = TQDMProgressBar(refresh_rate=cfg.train.refresh_rate)
+    callbacks.append(progress_bar)
+
+    accelerator = "gpu" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+
+    wandb_logger = WandbLogger(
+        log_model=cfg.train.log_model,
+        project=wandb_project,
+        entity=wandb_entity,
+    )
+
+    trainer = Trainer(
+        profiler=cfg.train.profiler,
+        precision=cfg.train.precision,
+        max_epochs=cfg.train.epochs,
+        callbacks=callbacks,
+        accelerator=accelerator,
+        devices=cfg.train.devices,
+        log_every_n_steps=cfg.train.log_every_n_steps,
+        enable_checkpointing=True,
+        enable_model_summary=True,
+        logger=wandb_logger,
+        default_root_dir=model_dir,
+    )
+
+    trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
+
+
+def eval_model(cfg: DictConfig, model_dir: str, test_dataloader, wandb_project, wandb_entity):
+    """Evaluate the model."""
+    model_checkpoint_path = os.path.join(model_dir, cfg.train.filename + ".ckpt")
+    model = BERTClass.load_from_checkpoint(model_checkpoint_path, cfg=cfg)
+    print(f"Loaded model from checkpoint: {model_checkpoint_path}")
+
+    wandb_logger = WandbLogger(
+        project=wandb_project,
+        entity=wandb_entity,
+    )
+
+    trainer = Trainer(
+        accelerator=("gpu" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"),
+        devices=cfg.train.devices,
+        logger=wandb_logger,
+    )
+
+    result = trainer.test(model, dataloaders=test_dataloader)
+    for key, value in result[0].items():
+        wandb.log({key: value})
+    return result[0]["test_loss"]
+
+
 def run_sweep(cfg: DictConfig, processed_data_dir, models_dir, wandb_project, wandb_entity):
     """Run a wandb sweep."""
     # Load sweep configuration from YAML file
@@ -125,85 +204,6 @@ def train_fixed(cfg: DictConfig, processed_data_dir, models_dir, wandb_api_key, 
     # Remove temporary model directory if not saving
     if not cfg.train.save_model:
         shutil.rmtree(model_dir)
-
-
-def train_model(
-    cfg: DictConfig,
-    model: BERTClass,
-    train_dataloader,
-    val_dataloader,
-    model_dir: str,
-    wandb_project,
-    wandb_entity,
-):
-    """Train the model."""
-    callbacks = []
-
-    checkpoint_callback = ModelCheckpoint(
-        dirpath=model_dir,
-        filename=cfg.train.filename,
-        save_top_k=1,
-        verbose=cfg.train.verbose,
-        monitor="val_loss",
-        mode="min",
-        save_weights_only=False,
-    )
-    callbacks.append(checkpoint_callback)
-
-    early_stopping_callback = EarlyStopping(
-        monitor="val_loss", patience=cfg.train.patience, verbose=cfg.train.verbose, mode="min"
-    )
-    callbacks.append(early_stopping_callback)
-
-    progress_bar = TQDMProgressBar(refresh_rate=cfg.train.refresh_rate)
-    callbacks.append(progress_bar)
-
-    accelerator = "gpu" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
-
-    wandb_logger = WandbLogger(
-        log_model=cfg.train.log_model,
-        project=wandb_project,
-        entity=wandb_entity,
-    )
-
-    trainer = Trainer(
-        profiler=cfg.train.profiler,
-        precision=cfg.train.precision,
-        max_epochs=cfg.train.epochs,
-        callbacks=callbacks,
-        accelerator=accelerator,
-        devices=cfg.train.devices,
-        log_every_n_steps=cfg.train.log_every_n_steps,
-        enable_checkpointing=True,
-        enable_model_summary=True,
-        logger=wandb_logger,
-        default_root_dir=model_dir,
-    )
-
-    trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
-
-
-def eval_model(cfg: DictConfig, model_dir: str, test_dataloader, wandb_project, wandb_entity):
-    """Evaluate the model."""
-    model_checkpoint_path = os.path.join(model_dir, cfg.train.filename + ".ckpt")
-    model = BERTClass.load_from_checkpoint(model_checkpoint_path, cfg=cfg)
-    print(f"Loaded model from checkpoint: {model_checkpoint_path}")
-
-    wandb_logger = WandbLogger(
-        project=wandb_project,
-        entity=wandb_entity,
-    )
-
-    trainer = Trainer(
-        accelerator=("gpu" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"),
-        devices=cfg.train.devices,
-        logger=wandb_logger,
-    )
-
-    result = trainer.test(model, dataloaders=test_dataloader)
-    for key, value in result[0].items():
-        wandb.log({key: value})
-    return result[0]["test_loss"]
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base="1.2")
