@@ -14,7 +14,7 @@ from fakenews.model.model import BERTClass
 # Initialize Hydra and load the configuration
 @pytest.fixture
 def cfg():
-    with initialize(config_path="../config", version_base=None):
+    with initialize(config_path="../../config", version_base=None):
         cfg = compose(config_name="config")
     return cfg
 
