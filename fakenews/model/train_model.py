@@ -128,7 +128,13 @@ def train_fixed(cfg: DictConfig, processed_data_dir, models_dir, wandb_api_key, 
 
 
 def train_model(
-    cfg: DictConfig, model: BERTClass, train_dataloader, val_dataloader, model_dir: str, wandb_project, wandb_entity
+    cfg: DictConfig,
+    model: BERTClass,
+    train_dataloader,
+    val_dataloader,
+    model_dir: str,
+    wandb_project,
+    wandb_entity,
 ):
     """Train the model."""
     callbacks = []
@@ -222,7 +228,7 @@ def main(cfg: DictConfig):
     if cfg.train.local_data:
         from fakenews.config import PROCESSED_DATA_DIR
     else:
-        _, PROCESSED_DATA_DIR, _ = setup_data_directories()
+        _, PROCESSED_DATA_DIR, _ = setup_data_directories(cfg=cfg)
 
     if cfg.train.sweep:
         run_sweep(cfg, PROCESSED_DATA_DIR, MODELS_DIR, WANDB_PROJECT, WANDB_ENTITY)
