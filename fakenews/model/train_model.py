@@ -17,7 +17,22 @@ from fakenews.config import MODELS_DIR, access_secret_version, setup_data_direct
 
 
 def preprocess_data(cfg: DictConfig, processed_data_dir):
-    """Preprocess data and return dataloaders."""
+    """
+    Preprocess data and return DataLoader objects for training, validation, and test sets.
+
+    This function initializes a DataPreprocessor object and uses it to process the raw data
+    into DataLoader objects, which are used for training, validation, and testing a machine learning model.
+
+    Args:
+        cfg (DictConfig): Configuration object composed by Hydra.
+        processed_data_dir (str): Directory path where the preprocessed data is stored or will be stored.
+
+    Returns:
+        tuple: A tuple containing three DataLoader objects:
+            - train_dataloader: DataLoader for the training data.
+            - val_dataloader: DataLoader for the validation data.
+            - test_dataloader: DataLoader for the test data.
+    """
     preprocessor = DataPreprocessor(processed_data_dir, cfg.preprocess.max_length)
     train_dataloader, val_dataloader, test_dataloader = preprocessor.process(
         batch_size=cfg.train.batch_size,
@@ -30,7 +45,20 @@ def preprocess_data(cfg: DictConfig, processed_data_dir):
 
 
 def create_model_directory(cfg: DictConfig, models_dir):
-    """Create a directory to save the model."""
+    """
+    Create a directory to save the model.
+
+    This function creates a directory to save the model based on the configuration.
+    If `save_model` is True in the configuration, a directory is created with the current date and time.
+    If `save_model` is False, a temporary directory is created.
+
+    Args:
+        cfg (DictConfig): Configuration object composed by Hydra.
+        models_dir (str): Base directory where model directories should be created.
+
+    Returns:
+        str: The path to the created model directory.
+    """
     if cfg.train.save_model:
         date_str = datetime.now().strftime("%Y%m%d_%H%M%S")
         model_dir = os.path.join(models_dir, date_str)
@@ -49,7 +77,25 @@ def train_model(
     wandb_project,
     wandb_entity,
 ):
-    """Train the model."""
+    """
+    Train the model.
+
+    This function trains a BERT-based model using PyTorch Lightning's Trainer.
+    It sets up callbacks for model checkpointing, early stopping, and a progress bar.
+    It also configures the WandbLogger for logging to Weights & Biases.
+
+    Args:
+        cfg (DictConfig): Configuration object composed by Hydra.
+        model (BERTClass): The BERT-based model to train.
+        train_dataloader (DataLoader): DataLoader for the training data.
+        val_dataloader (DataLoader): DataLoader for the validation data.
+        model_dir (str): Directory where model checkpoints will be saved.
+        wandb_project (str): Name of the Weights & Biases project.
+        wandb_entity (str): Name of the Weights & Biases entity (user or team).
+
+    Returns:
+        None
+    """
     callbacks = []
 
     checkpoint_callback = ModelCheckpoint(
@@ -97,7 +143,22 @@ def train_model(
 
 
 def eval_model(cfg: DictConfig, model_dir: str, test_dataloader, wandb_project, wandb_entity):
-    """Evaluate the model."""
+    """
+    Evaluate the model.
+
+    This function loads a BERT-based model from a checkpoint, evaluates it on a test dataset,
+    and logs the results to Weights & Biases.
+
+    Args:
+        cfg (DictConfig): Configuration object composed by Hydra.
+        model_dir (str): Directory where model checkpoints are saved.
+        test_dataloader (DataLoader): DataLoader for the test data.
+        wandb_project (str): Name of the Weights & Biases project.
+        wandb_entity (str): Name of the Weights & Biases entity (user or team).
+
+    Returns:
+        float: The test loss of the model.
+    """
     model_checkpoint_path = os.path.join(model_dir, cfg.train.filename + ".ckpt")
     model = BERTClass.load_from_checkpoint(model_checkpoint_path, cfg=cfg)
     print(f"Loaded model from checkpoint: {model_checkpoint_path}")
@@ -120,7 +181,22 @@ def eval_model(cfg: DictConfig, model_dir: str, test_dataloader, wandb_project, 
 
 
 def run_sweep(cfg: DictConfig, processed_data_dir, models_dir, wandb_project, wandb_entity):
-    """Run a wandb sweep."""
+    """
+    Run a Weights & Biases sweep.
+
+    This function loads a sweep configuration from a YAML file, initializes a Weights & Biases (wandb) sweep,
+    and defines a training function to be called by the wandb agent for training the model.
+
+    Args:
+        cfg (DictConfig): Configuration object composed by Hydra.
+        processed_data_dir (str): Directory path where the preprocessed data is stored or will be stored.
+        models_dir (str): Base directory where model directories should be created.
+        wandb_project (str): Name of the Weights & Biases project.
+        wandb_entity (str): Name of the Weights & Biases entity (user or team).
+
+    Returns:
+        None
+    """
     # Load sweep configuration from YAML file
     with open(os.path.join(os.path.dirname(__file__), "../../config/sweep.yaml"), "r") as file:
         sweep_config = yaml.safe_load(file)
@@ -130,7 +206,15 @@ def run_sweep(cfg: DictConfig, processed_data_dir, models_dir, wandb_project, wa
     sweep_id = wandb.sweep(sweep_config, project=wandb_project, entity=wandb_entity)
 
     def train():
-        """Function to be called by wandb agent for training."""
+        """
+        Function to be called by wandb agent for training.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         wandb.init()
         sweep_config = wandb.config
 
@@ -176,7 +260,23 @@ def run_sweep(cfg: DictConfig, processed_data_dir, models_dir, wandb_project, wa
 
 
 def train_fixed(cfg: DictConfig, processed_data_dir, models_dir, wandb_api_key, wandb_project, wandb_entity):
-    """Train the model with fixed configuration."""
+    """
+    Train the model with fixed configuration.
+
+    This function trains a BERT-based model using a fixed configuration. It logs into Weights & Biases,
+    initializes a new run, preprocesses the data, trains the model, evaluates the model, and logs the results to Weights & Biases.
+
+    Args:
+        cfg (DictConfig): Configuration object composed by Hydra.
+        processed_data_dir (str): Directory path where the preprocessed data is stored or will be stored.
+        models_dir (str): Base directory where model directories should be created.
+        wandb_api_key (str): API key for authenticating with Weights & Biases.
+        wandb_project (str): Name of the Weights & Biases project.
+        wandb_entity (str): Name of the Weights & Biases entity (user or team).
+
+    Returns:
+        None
+    """
     wandb.login(key=wandb_api_key)
     wandb.init(
         project=wandb_project,

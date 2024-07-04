@@ -34,7 +34,7 @@ WORKDIR /
 RUN pip install -r requirements.txt --no-cache-dir
 
 # Install DVC and Google Cloud Storage dependencies
-RUN pip install dvc[gs] google-cloud-storage google-cloud-secret-manager
+# RUN pip install dvc[gs] google-cloud-storage google-cloud-secret-manager
 
 # Download data from Google Cloud Storage bucket
 #RUN gsutil cp -r gs://mlops-lmu-data-bucket/data /data/
