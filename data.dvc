@@ -1,6 +1,39 @@
 outs:
-- md5: b8e25a140b608ac8d0886093cd088652.dir
-  size: 689786636
-  nfiles: 8
-  hash: md5
+- hash: md5
   path: data
+  files:
+  - relpath: .DS_Store
+    md5: 01f7376a9cfe22f1427c640677e77217
+    size: 10244
+    cloud:
+      remote_storage:
+        etag: 08ff9da9b5f9f986031001
+        version_id: '1719428260187903'
+  - relpath: predict/predict_data.csv
+    md5: c02e3f4c38b7bf89636e674d5f3214e7
+    size: 16875
+    cloud:
+      remote_storage:
+        etag: 089af5b9b5f9f986031001
+        version_id: '1719428260461210'
+  - relpath: processed/preprocessed_data.csv
+    md5: a1bddd13d9347f13db6116cdfd2667f2
+    size: 6295036
+    cloud:
+      remote_storage:
+        etag: 08d5aad3bdf9f986031001
+        version_id: '1719428277654869'
+  - relpath: raw/WELFake_Dataset.csv
+    md5: 73c9675a4b3d09f86a6933d0b8d7d908
+    size: 245086152
+    cloud:
+      remote_storage:
+        etag: 08aedbf1c9faf986031001
+        version_id: '1719428571753902'
+  - relpath: raw/fake-news-classification.zip
+    md5: 0044cf952d2c3fd7d7497f0701142a76
+    size: 96615040
+    cloud:
+      remote_storage:
+        etag: 08db93bd8afaf986031001
+        version_id: '1719428438772187'

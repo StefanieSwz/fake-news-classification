@@ -1,12 +1,9 @@
-import os
 import operator
-import shutil
-import tempfile
 import hydra
 from omegaconf import DictConfig
 import wandb
 
-from fakenews.config import MODEL_REGISTRY, MODELS_DIR, WANDB_ENTITY, WANDB_PROJECT, WANDB_API_KEY
+from fakenews.config import MODEL_REGISTRY, WANDB_ENTITY, WANDB_PROJECT, WANDB_API_KEY, create_tmp_model_folder
 
 
 def link_all_artifacts_to_registry(cfg: DictConfig):
@@ -17,6 +14,7 @@ def link_all_artifacts_to_registry(cfg: DictConfig):
         cfg (DictConfig): Configuration composed by Hydra.
     """
     wandb.login(key=WANDB_API_KEY)
+    wandb.init(project=WANDB_PROJECT, entity=WANDB_ENTITY)
     api = wandb.Api()
 
     # Retrieve all artifacts of type 'model'
@@ -79,18 +77,10 @@ def stage_best_model_to_registry(cfg: DictConfig):
         print("Model staged to registry.")
 
         if cfg.predict.save_best_model:
-            with tempfile.TemporaryDirectory() as tmp_dir:
-                # Download the best model to a temporary directory
-                artifact_dir = best_artifact.download(root=tmp_dir)
-                best_model_dir = os.path.join(MODELS_DIR, "best_model")
-                os.makedirs(best_model_dir, exist_ok=True)
+            create_tmp_model_folder(cfg=cfg, local=True, best_artifact=best_artifact)
 
-                for file_name in os.listdir(artifact_dir):
-                    full_file_name = os.path.join(artifact_dir, file_name)
-                    if os.path.isfile(full_file_name):
-                        shutil.move(full_file_name, os.path.join(best_model_dir, file_name))
-
-            print(f"Best model saved locally in: {best_model_dir}")
+        if cfg.cloud.save_model_cloud:
+            create_tmp_model_folder(cfg=cfg, local=False, best_artifact=best_artifact)
 
     except wandb.errors.CommError as e:
         print(f"Error linking artifact: {e}")

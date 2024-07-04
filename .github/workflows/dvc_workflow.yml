@@ -1,10 +1,13 @@
-name: "Run tests"
+name: DVC Workflow
 
 on:
-  push:
-    branches: [ main, pytests ]
   pull_request:
-    branches: [ main, pytests ]
+    branches:
+    - main
+    paths:
+    - '*.dvc'
+    - '**/*.dvc'
+    - '.dvc/**'
 
 jobs:
   build:
@@ -16,7 +19,6 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-
     - name: Set up Python 3.11
       uses: actions/setup-python@v5
       with:
@@ -27,8 +29,8 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install -r requirements_tests.txt
-    - name: Test with pytest
+    - uses: iterative/setup-dvc@v1
+    - name: Get data
+      run: dvc pull
       env:
-          PYTHONPATH: ${{ github.workspace }}
-      run: |
-        pytest -v
+        GDRIVE_CREDENTIALS_DATA: ${{ secrets.GDRIVE_CREDENTIALS_DATA }}

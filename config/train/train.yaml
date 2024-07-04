@@ -1,6 +1,6 @@
 lr: 1e-5
 batch_size: 32
-epochs: 10
+epochs: 1
 patience: 3
 random_state: 2018
 test_size: 0.3
@@ -12,7 +12,9 @@ log_every_n_steps: 50
 refresh_rate: 50
 precision: "32"
 profiler: "simple"
-num_runs: 10
+num_runs: 5
 sweep: False
 save_model: False
 log_model: True
+local_wandb: False
+local_data: False

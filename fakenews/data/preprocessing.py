@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import multiprocessing
 from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
@@ -8,6 +9,13 @@ import hydra
 from omegaconf import DictConfig
 
 from fakenews.config import PROCESSED_DATA_DIR, RAW_DATA_DIR
+
+
+def get_num_workers(fraction=0.5):
+    """Calculate the number of workers based on available CPU cores."""
+    num_cores = multiprocessing.cpu_count()
+    num_workers = int(num_cores * fraction)
+    return max(1, num_workers)  # Ensure at least 1 worker
 
 
 class DataPreprocessor:
@@ -186,15 +194,33 @@ class DataPreprocessor:
         """
         train_data = TensorDataset(train_seq, train_mask, train_y)
         train_sampler = RandomSampler(train_data)
-        train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=batch_size)
+        train_dataloader = DataLoader(
+            train_data,
+            sampler=train_sampler,
+            batch_size=batch_size,
+            num_workers=get_num_workers(),
+            persistent_workers=True,
+        )
 
         val_data = TensorDataset(val_seq, val_mask, val_y)
         val_sampler = SequentialSampler(val_data)
-        val_dataloader = DataLoader(val_data, sampler=val_sampler, batch_size=batch_size)
+        val_dataloader = DataLoader(
+            val_data,
+            sampler=val_sampler,
+            batch_size=batch_size,
+            num_workers=get_num_workers(),
+            persistent_workers=True,
+        )
 
         test_data = TensorDataset(test_seq, test_mask, test_y)
         test_sampler = SequentialSampler(test_data)
-        test_dataloader = DataLoader(test_data, sampler=test_sampler, batch_size=batch_size)
+        test_dataloader = DataLoader(
+            test_data,
+            sampler=test_sampler,
+            batch_size=batch_size,
+            num_workers=get_num_workers(),
+            persistent_workers=True,
+        )
 
         return train_dataloader, val_dataloader, test_dataloader
 
@@ -251,6 +277,7 @@ class DataPreprocessor:
         """
         predict_data = self.load_preprocessed_data(predict_data_dir, file_name="predict_data.csv")
         titles = predict_data["title"].tolist()
+        self.titles = titles  # Store titles to access them during prediction
         return self._create_dataloader(titles, batch_size)
 
     def create_prediction_dataloader_from_df(self, df, batch_size):
@@ -264,7 +291,9 @@ class DataPreprocessor:
         Returns:
             DataLoader: DataLoader object for prediction data.
         """
-        return self._create_dataloader(df["title"].tolist(), batch_size)
+        titles = df["title"].tolist()
+        self.titles = titles  # Store titles to access them during prediction
+        return self._create_dataloader(titles, batch_size)
 
     def _create_dataloader(self, titles, batch_size):
         """
