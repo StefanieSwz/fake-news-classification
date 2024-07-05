@@ -188,6 +188,47 @@ def create_tmp_model_folder(cfg: DictConfig, local: bool, best_artifact):
                 upload_to_gcs(model_bytes, gcs_bucket_name, gcs_model_path)
 
 
+def upload_string_to_gcs(content, bucket_name, destination_blob_name):
+    """
+    Upload a string to a Google Cloud Storage (GCS) bucket.
+
+    This function uploads the given string to the specified GCS bucket under the specified blob name.
+
+    Args:
+        content (str): The file object to be uploaded. The file pointer should be at the beginning of the file.
+        bucket_name (str): The name of the GCS bucket to upload the file to.
+        destination_blob_name (str): The destination path and name of the blob in the GCS bucket.
+
+    Returns:
+        None
+    """
+    client = storage.Client()
+    bucket = client.bucket(bucket_name)
+    blob = bucket.blob(destination_blob_name)
+    blob.upload_from_string(content)
+    print(f"Uploaded to GCS: gs://{bucket_name}/{destination_blob_name}")
+
+
+def get_string_from_gcs(bucket_name, blob_name):
+    """
+    Fetch a blob from Google Cloud Storage and return it as a string.
+
+    This function initializes a Google Cloud Storage client, accesses the specified bucket,
+    retrieves the specified blob, and downloads its content as a string.
+
+    Args:
+        bucket_name (str): The name of the Google Cloud Storage bucket.
+        blob_name (str): The name of the blob to fetch from the bucket.
+
+    Returns:
+        str: The content of the blob as a string.
+    """
+    client = storage.Client()
+    bucket = client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
+    return blob.download_as_text()
+
+
 # If tqdm is installed, configure loguru with tqdm.write
 try:
     from tqdm import tqdm
