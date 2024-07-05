@@ -30,6 +30,7 @@ INTERIM_DATA_DIR = DATA_DIR / "interim"
 PROCESSED_DATA_DIR = DATA_DIR / "processed"
 EXTERNAL_DATA_DIR = DATA_DIR / "external"
 PREDICT_DATA_DIR = DATA_DIR / "predict"
+MONITORING_DATA_DIR = DATA_DIR / "monitoring"
 
 MODELS_DIR = PROJ_ROOT / "models"
 BEST_MODEL = MODELS_DIR / "best_model"
@@ -37,6 +38,7 @@ DEPLOY_MODEL = MODELS_DIR / "deploy"
 
 REPORTS_DIR = PROJ_ROOT / "reports"
 FIGURES_DIR = REPORTS_DIR / "figures"
+MONITORING_DIR = REPORTS_DIR / "monitoring"
 
 
 def access_secret_version(secret_id):

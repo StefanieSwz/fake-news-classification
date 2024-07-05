@@ -3,6 +3,7 @@ import shutil
 import tempfile
 import pandas as pd
 import hydra
+import csv
 from datetime import datetime
 from fastapi import BackgroundTasks, FastAPI, UploadFile, File, Query
 from fastapi.responses import JSONResponse
@@ -34,9 +35,17 @@ artifact_dir = None
 
 def add_to_database(predictions: list):
     """Simple function to add a list of predictions to the database."""
-    with open("data/monitoring/monitoring_db.csv", "a") as file:
+    file_path = "data/monitoring/monitoring_db.csv"
+
+    if not os.path.isfile(file_path):
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        df = pd.DataFrame(columns=["timestamp", "title", "label", "probability"])
+        df.to_csv(file_path, index=False, encoding="utf-8")
+
+    with open(file_path, "a", newline="", encoding="utf-8") as file:
+        writer = csv.writer(file, quoting=csv.QUOTE_MINIMAL)
         for now, title, label, probability in predictions:
-            file.write(f"{now}, {title}, {label}, {probability}\n")
+            writer.writerow([now, title, label, probability])
 
 
 @app.on_event("startup")
@@ -183,7 +192,7 @@ async def predict_v2(
                     "probability": prob[1] if pred == 1 else prob[0],
                 }
             )
-            db_predictions.append((now, title, pred, prob[1] if pred == 1 else prob[0]))
+            db_predictions.append((now, str(title), pred, prob[1] if pred == 1 else prob[0]))
         background_tasks.add_task(add_to_database, db_predictions)
         return JSONResponse(result)
 
