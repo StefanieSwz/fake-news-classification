@@ -3,8 +3,9 @@ from pathlib import Path
 import io
 
 from dotenv import load_dotenv
-from loguru import logger
 import shutil
+
+import pandas as pd
 
 from omegaconf import DictConfig
 from google.cloud import secretmanager, storage
@@ -207,7 +208,7 @@ def upload_string_to_gcs(content, bucket_name, destination_blob_name):
     client = storage.Client()
     bucket = client.bucket(bucket_name)
     blob = bucket.blob(destination_blob_name)
-    blob.upload_from_string(content)
+    blob.upload_from_string(content, content_type="text/csv")
     print(f"Uploaded to GCS: gs://{bucket_name}/{destination_blob_name}")
 
 
@@ -269,11 +270,68 @@ def compare_and_upload_best_model(cfg: DictConfig, model_checkpoint_path, val_lo
         print("Model not better than best model in GCS. Not uploading.")
 
 
-# If tqdm is installed, configure loguru with tqdm.write
-try:
-    from tqdm import tqdm
+def download_model_from_gcs(bucket_name: str, source_blob_name: str, destination_file_name: str) -> None:
+    """
+    Downloads a blob from a Google Cloud Storage bucket and saves it to a local file.
 
-    logger.remove(0)
-    logger.add(lambda msg: tqdm.write(msg, end=""), colorize=True)
-except ModuleNotFoundError:
-    pass
+    Args:
+        bucket_name (str): The name of the GCS bucket.
+        source_blob_name (str): The name of the blob in the GCS bucket.
+        destination_file_name (str): The local file path where the blob will be saved.
+
+    Returns:
+        None
+
+    Example:
+        download_model_from_gcs('my-bucket', 'path/to/blob', 'local/path/to/save')
+    """
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(source_blob_name)
+    blob.download_to_filename(destination_file_name)
+    print(f"Blob {source_blob_name} downloaded to {destination_file_name}.")
+
+
+def add_to_database(cfg: DictConfig, predictions: list) -> None:
+    """
+    Uploads a list of predictions to a Google Cloud Storage bucket, appending to the existing CSV file.
+
+    This function downloads the existing CSV file from GCS, appends the new predictions, and re-uploads the combined data.
+
+    Args:
+        cfg (DictConfig): Configuration object composed by Hydra, containing cloud settings.
+        predictions (list): List of predictions to be added. Each prediction is a tuple of (timestamp, title, label, probability).
+
+    Returns:
+        None
+    """
+    file_path = "data/monitoring/monitoring_db.csv"
+    bucket_name = cfg.cloud.bucket_name_data
+    blob_name = file_path
+
+    client = storage.Client()
+    bucket = client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
+
+    # Download the existing CSV file from GCS if it exists
+    if blob.exists():
+        existing_data = blob.download_as_text()
+        df_existing = pd.read_csv(io.StringIO(existing_data))
+        print("Existing data downloaded from GCS.")
+    else:
+        # Create an empty DataFrame if the CSV file does not exist
+        df_existing = pd.DataFrame(columns=["timestamp", "title", "label", "probability"])
+        print("No existing data found. Creating a new DataFrame.")
+
+    # Create a DataFrame for the new data
+    df_new = pd.DataFrame(predictions, columns=["timestamp", "title", "label", "probability"])
+
+    # Append the new data to the existing data
+    df_combined = pd.concat([df_existing, df_new])
+
+    # Convert combined data to CSV string
+    csv_data = df_combined.to_csv(index=False, encoding="utf-8")
+    print("CSV data prepared for upload.")
+
+    # Upload the updated CSV string to GCS
+    upload_string_to_gcs(csv_data, bucket_name, blob_name)
