@@ -1,4 +1,14 @@
 site_name: MLOps Fake News Classification
 #
-site_author: Anne Gritto, Tobias Brock, Stefanie Schwarz
-#
+site_author: Tobias Brock, Stefanie Schwarz, Anne Gritto
+
+theme:
+  language: en
+  name: material
+  features:
+  - content.code.copy
+  - content.code.annotate
+
+nav:
+  - Home: index.md
+  - API: my_api.md

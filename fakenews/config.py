@@ -188,6 +188,85 @@ def create_tmp_model_folder(cfg: DictConfig, local: bool, best_artifact):
                 upload_to_gcs(model_bytes, gcs_bucket_name, gcs_model_path)
 
 
+def upload_string_to_gcs(content, bucket_name, destination_blob_name):
+    """
+    Upload a string to a Google Cloud Storage (GCS) bucket.
+
+    This function uploads the given string to the specified GCS bucket under the specified blob name.
+
+    Args:
+        content (str): The file object to be uploaded. The file pointer should be at the beginning of the file.
+        bucket_name (str): The name of the GCS bucket to upload the file to.
+        destination_blob_name (str): The destination path and name of the blob in the GCS bucket.
+
+    Returns:
+        None
+    """
+    client = storage.Client()
+    bucket = client.bucket(bucket_name)
+    blob = bucket.blob(destination_blob_name)
+    blob.upload_from_string(content)
+    print(f"Uploaded to GCS: gs://{bucket_name}/{destination_blob_name}")
+
+
+def get_string_from_gcs(bucket_name, blob_name):
+    """
+    Fetch a blob from Google Cloud Storage and return it as a string.
+
+    This function initializes a Google Cloud Storage client, accesses the specified bucket,
+    retrieves the specified blob, and downloads its content as a string.
+
+    Args:
+        bucket_name (str): The name of the Google Cloud Storage bucket.
+        blob_name (str): The name of the blob to fetch from the bucket.
+
+    Returns:
+        str: The content of the blob as a string.
+    """
+    client = storage.Client()
+    bucket = client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
+    return blob.download_as_text()
+
+
+def compare_and_upload_best_model(cfg: DictConfig, model_checkpoint_path, val_loss):
+    """
+    Compare the model's validation loss with the best model in GCS and upload if it's better.
+
+    Args:
+        cfg (DictConfig): Configuration object composed by Hydra.
+        model_checkpoint_path (str): Path to the saved model checkpoint.
+        val_loss (float): Validation loss of the current model.
+
+    Returns:
+        None
+    """
+    print("Comparing model to best model in GCS")
+    best_val_loss_cloud = float("inf")
+    try:
+        best_val_loss_cloud = float(
+            get_string_from_gcs(
+                cfg.cloud.bucket_name_model, os.path.join(cfg.cloud.val_loss_dir, cfg.cloud.val_loss_file)
+            )
+        )
+    except Exception as e:
+        print(f"Error fetching best validation loss: {e}\n Setting best_val_loss_cloud to infinity.")
+
+    if val_loss < best_val_loss_cloud:
+        print("New best model found. Uploading to GCS.")
+        with open(model_checkpoint_path, "rb") as model_file:
+            upload_to_gcs(
+                model_file, cfg.cloud.bucket_name_model, os.path.join(cfg.cloud.model_dir, cfg.cloud.model_file)
+            )
+        upload_string_to_gcs(
+            str(val_loss),
+            cfg.cloud.bucket_name_model,
+            os.path.join(cfg.cloud.val_loss_dir, cfg.cloud.val_loss_file),
+        )
+    else:
+        print("Model not better than best model in GCS. Not uploading.")
+
+
 # If tqdm is installed, configure loguru with tqdm.write
 try:
     from tqdm import tqdm

@@ -5,6 +5,7 @@ import pytest
 import tempfile
 from unittest.mock import patch, MagicMock
 from hydra import compose, initialize
+import torch
 
 from fakenews.model.model import BERTClass
 from fakenews.model.train_model import (
@@ -51,13 +52,31 @@ def test_create_model_directory(cfg):
         assert model_dir.startswith(tempfile.gettempdir())
 
 
+# @patch("pytorch_lightning.Trainer.fit")
+# @patch("pytorch_lightning.loggers.WandbLogger")
+# def test_train_model(mock_wandb_logger, mock_trainer_fit, cfg):
+#    model = BERTClass(cfg)
+#    train_dataloader, val_dataloader = MagicMock(), MagicMock()
+#    with patch("pytorch_lightning.Trainer.callback_metrics", {"val_loss": torch.tensor(0.1)}):
+#        _, _ =train_model(cfg, model, train_dataloader, val_dataloader, "model_dir", "wandb_project", "wandb_entity")
+#    mock_trainer_fit.assert_called_once()
 @patch("pytorch_lightning.Trainer.fit")
-@patch("pytorch_lightning.loggers.WandbLogger")
-def test_train_model(mock_wandb_logger, mock_trainer_fit, cfg):
+def test_train_model(mock_trainer_fit, cfg):
     model = BERTClass(cfg)
     train_dataloader, val_dataloader = MagicMock(), MagicMock()
-    train_model(cfg, model, train_dataloader, val_dataloader, "model_dir", "wandb_project", "wandb_entity")
+    with patch("pytorch_lightning.Trainer.callback_metrics", {"val_loss": torch.tensor(0.1)}):
+        best_model_path, val_loss = train_model(
+            cfg,
+            model,
+            train_dataloader,
+            val_dataloader,
+            "model_dir",
+            "wandb_project",
+            "wandb_entity",
+        )
     mock_trainer_fit.assert_called_once()
+    assert best_model_path is not None
+    assert val_loss == torch.tensor(0.1)
 
 
 @patch("wandb.init")
