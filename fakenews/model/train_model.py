@@ -142,16 +142,13 @@ def train_model(
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
     print(f"Callback metrics: {trainer.callback_metrics}")
     val_loss = trainer.callback_metrics.get("val_loss")
-    print(f"Validation loss with .get(val_loss): {val_loss}")
-    val_loss_try2 = trainer.callback_metrics["val_loss"].item()
-    print(f"Validation loss with [val_loss].item(): {val_loss_try2}")
+    print(f"Validation loss: {val_loss}")
     if val_loss is None:
         raise ValueError("Validation loss not found in callback metrics. Ensure it is being logged during validation.")
 
     best_model_path = checkpoint_callback.best_model_path
     print(f"Best model path: {best_model_path}")
     return best_model_path, val_loss.item()
-    # return checkpoint_callback.best_model_path, trainer.callback_metrics["val_loss"].item()
 
 
 def eval_model(cfg: DictConfig, model_dir: str, test_dataloader, wandb_project, wandb_entity):
