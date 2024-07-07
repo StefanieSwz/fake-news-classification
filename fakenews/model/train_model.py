@@ -13,14 +13,7 @@ import yaml
 from fakenews.data.preprocessing import DataPreprocessor
 from fakenews.model.model import BERTClass
 import wandb
-from fakenews.config import (
-    MODELS_DIR,
-    access_secret_version,
-    setup_data_directories,
-    get_string_from_gcs,
-    upload_string_to_gcs,
-    upload_to_gcs,
-)
+from fakenews.config import MODELS_DIR, access_secret_version, setup_data_directories, compare_and_upload_best_model
 
 
 def preprocess_data(cfg: DictConfig, processed_data_dir):
@@ -147,7 +140,18 @@ def train_model(
     )
 
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
-    return checkpoint_callback.best_model_path, trainer.callback_metrics["val_loss"].item()
+    print(f"Callback metrics: {trainer.callback_metrics}")
+    val_loss = trainer.callback_metrics.get("val_loss")
+    print(f"Validation loss with .get(val_loss): {val_loss}")
+    val_loss_try2 = trainer.callback_metrics["val_loss"].item()
+    print(f"Validation loss with [val_loss].item(): {val_loss_try2}")
+    if val_loss is None:
+        raise ValueError("Validation loss not found in callback metrics. Ensure it is being logged during validation.")
+
+    best_model_path = checkpoint_callback.best_model_path
+    print(f"Best model path: {best_model_path}")
+    return best_model_path, val_loss.item()
+    # return checkpoint_callback.best_model_path, trainer.callback_metrics["val_loss"].item()
 
 
 def eval_model(cfg: DictConfig, model_dir: str, test_dataloader, wandb_project, wandb_entity):
@@ -254,7 +258,14 @@ def run_sweep(cfg: DictConfig, processed_data_dir, models_dir, wandb_project, wa
         model = BERTClass(cfg)
 
         # Train the model
-        train_model(cfg, model, train_dataloader, val_dataloader, model_dir, wandb_project, wandb_entity)
+        model_checkpoint_path, val_loss = train_model(
+            cfg, model, train_dataloader, val_dataloader, model_dir, wandb_project, wandb_entity
+        )
+
+        if cfg.cloud.save_best_model_gcs:
+            compare_and_upload_best_model(cfg, model_checkpoint_path, val_loss)
+        else:
+            print("Cloud saving is disabled in the configuration. Not uploading model to GCS.")
 
         # Evaluate the model
         eval_model(cfg, model_dir, test_dataloader, wandb_project, wandb_entity)
@@ -308,30 +319,7 @@ def train_fixed(cfg: DictConfig, processed_data_dir, models_dir, wandb_api_key, 
         cfg, model, train_dataloader, val_dataloader, model_dir, wandb_project, wandb_entity
     )
     if cfg.cloud.save_best_model_gcs:
-        print("Comparing model to best model in GCS")
-        # Safeguard if fetching best val loss from GCS fails
-        best_val_loss_cloud = float("inf")
-        try:
-            best_val_loss_cloud = float(
-                get_string_from_gcs(
-                    cfg.cloud.bucket_name_model, os.path.join(cfg.cloud.val_loss_dir, cfg.cloud.val_loss_file)
-                )
-            )
-        except Exception as e:
-            print(f"Error fetching best validation loss: {e}\n Setting best_val_loss_cloud to infinity.")
-        if val_loss < best_val_loss_cloud:
-            print("New best model found. Uploading to GCS.")
-            with open(model_checkpoint_path, "rb") as model_file:
-                upload_to_gcs(
-                    model_file, cfg.cloud.bucket_name_model, os.path.join(cfg.cloud.model_dir, cfg.cloud.model_file)
-                )
-            upload_string_to_gcs(
-                str(val_loss),
-                cfg.cloud.bucket_name_model,
-                os.path.join(cfg.cloud.val_loss_dir, cfg.cloud.val_loss_file),
-            )
-        else:
-            print("Model not better than best model in GCS. Not uploading.")
+        compare_and_upload_best_model(cfg, model_checkpoint_path, val_loss)
     else:
         print("Cloud saving is disabled in the configuration. Not uploading model to GCS.")
 

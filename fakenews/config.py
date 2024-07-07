@@ -229,6 +229,44 @@ def get_string_from_gcs(bucket_name, blob_name):
     return blob.download_as_text()
 
 
+def compare_and_upload_best_model(cfg: DictConfig, model_checkpoint_path, val_loss):
+    """
+    Compare the model's validation loss with the best model in GCS and upload if it's better.
+
+    Args:
+        cfg (DictConfig): Configuration object composed by Hydra.
+        model_checkpoint_path (str): Path to the saved model checkpoint.
+        val_loss (float): Validation loss of the current model.
+
+    Returns:
+        None
+    """
+    print("Comparing model to best model in GCS")
+    best_val_loss_cloud = float("inf")
+    try:
+        best_val_loss_cloud = float(
+            get_string_from_gcs(
+                cfg.cloud.bucket_name_model, os.path.join(cfg.cloud.val_loss_dir, cfg.cloud.val_loss_file)
+            )
+        )
+    except Exception as e:
+        print(f"Error fetching best validation loss: {e}\n Setting best_val_loss_cloud to infinity.")
+
+    if val_loss < best_val_loss_cloud:
+        print("New best model found. Uploading to GCS.")
+        with open(model_checkpoint_path, "rb") as model_file:
+            upload_to_gcs(
+                model_file, cfg.cloud.bucket_name_model, os.path.join(cfg.cloud.model_dir, cfg.cloud.model_file)
+            )
+        upload_string_to_gcs(
+            str(val_loss),
+            cfg.cloud.bucket_name_model,
+            os.path.join(cfg.cloud.val_loss_dir, cfg.cloud.val_loss_file),
+        )
+    else:
+        print("Model not better than best model in GCS. Not uploading.")
+
+
 # If tqdm is installed, configure loguru with tqdm.write
 try:
     from tqdm import tqdm
