@@ -42,3 +42,4 @@ google-resumable-media==2.7.1
 googleapis-common-protos==1.63.1
 evidently==0.4.30
 prometheus-fastapi-instrumentator==7.0.0
+mkdocs-material==9.5.28

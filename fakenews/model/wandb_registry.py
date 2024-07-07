@@ -2,8 +2,16 @@ import operator
 import hydra
 from omegaconf import DictConfig
 import wandb
+import os
 
-from fakenews.config import MODEL_REGISTRY, WANDB_ENTITY, WANDB_PROJECT, WANDB_API_KEY, create_tmp_model_folder
+from fakenews.config import (
+    MODEL_REGISTRY,
+    WANDB_ENTITY,
+    WANDB_PROJECT,
+    WANDB_API_KEY,
+    create_tmp_model_folder,
+    upload_string_to_gcs,
+)
 
 
 def link_all_artifacts_to_registry(cfg: DictConfig):
@@ -79,8 +87,18 @@ def stage_best_model_to_registry(cfg: DictConfig):
         if cfg.predict.save_best_model:
             create_tmp_model_folder(cfg=cfg, local=True, best_artifact=best_artifact)
 
-        if cfg.cloud.save_model_cloud:
+        if cfg.cloud.wandb_best_model_to_gcs:
             create_tmp_model_folder(cfg=cfg, local=False, best_artifact=best_artifact)
+            # Upload validation loss to GCS
+            val_loss = best_artifact.metadata.get(metric_name)
+            print("Validation loss: ", val_loss)
+            if val_loss is not None:
+                val_loss_str = str(val_loss)
+                gcs_bucket_name = cfg.cloud.bucket_name_model
+                gcs_val_loss_path = os.path.join(cfg.cloud.val_loss_dir, cfg.cloud.val_loss_file)
+                upload_string_to_gcs(val_loss_str, gcs_bucket_name, gcs_val_loss_path)
+            else:
+                print(f"Validation loss '{metric_name}' not found in artifact metadata.")
 
     except wandb.errors.CommError as e:
         print(f"Error linking artifact: {e}")
