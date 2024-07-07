@@ -7,7 +7,7 @@ RUN apt-get update && \
     apt-get install --no-install-recommends -y build-essential gcc curl gnupg apt-transport-https && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-COPY requirements_backend.txt requirements_backend.txt
+COPY requirements.txt requirements.txt
 COPY fakenews/ fakenews/
 COPY config/ config/
 #COPY service_account_credentials.json /service_account_credentials.json
@@ -15,7 +15,7 @@ COPY config/ config/
 WORKDIR /
 
 RUN pip install --upgrade pip && \
-    pip install -r requirements_backend.txt --no-cache-dir
+    pip install -r requirements.txt --no-cache-dir
 
 # Set the Python path
 ENV PYTHONPATH="${PYTHONPATH}:/fakenews"
