@@ -10,6 +10,10 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import torch
 import wandb
+from prometheus_fastapi_instrumentator import Instrumentator
+from prometheus_client import Counter, generate_latest, REGISTRY, CONTENT_TYPE_LATEST
+from starlette.responses import Response
+
 from fakenews.config import (
     MODEL_REGISTRY,
     WANDB_API_KEY,
@@ -19,7 +23,10 @@ from fakenews.config import (
 from fakenews.data.preprocessing import DataPreprocessor
 from fakenews.model.model import BERTClass
 
+
 app = FastAPI()
+
+counter_requests = Counter("requests", "Number of requests made to FastAPI inference app.")
 
 
 class Title(BaseModel):
@@ -133,6 +140,7 @@ async def predict(
                     "probability": prob[1] if pred == 1 else prob[0],
                 }
             )
+            counter_requests.inc()  # Increment by 1
         return JSONResponse(result)
 
 
@@ -192,6 +200,7 @@ async def predict_v2(
                     "probability": prob[1] if pred == 1 else prob[0],
                 }
             )
+            counter_requests.inc()  # Increment by 1
             db_predictions.append((now, str(title), pred, prob[1] if pred == 1 else prob[0]))
         background_tasks.add_task(add_to_database, db_predictions)
         return JSONResponse(result)
@@ -232,6 +241,7 @@ async def predict_single(
                 "predicted_label": pred.item(),
                 "probability": probs[0][1].item() if pred.item() == 1 else probs[0][0].item(),
             }
+            counter_requests.inc()
             return JSONResponse(prediction)
 
 
@@ -272,12 +282,21 @@ async def predict_single_v2(
                 "predicted_label": pred.item(),
                 "probability": probs[0][1].item() if pred.item() == 1 else probs[0][0].item(),
             }
+            counter_requests.inc()  # Increment by 1
             now = str(datetime.now())
             background_tasks.add_task(
                 add_to_database,
                 [(now, title, prediction["predicted_label"], prediction["probability"])],
             )
             return JSONResponse(prediction)
+
+
+Instrumentator().instrument(app).expose(app)
+
+
+@app.get("/metrics")
+async def metrics():
+    return Response(generate_latest(REGISTRY), media_type=CONTENT_TYPE_LATEST)
 
 
 if __name__ == "__main__":

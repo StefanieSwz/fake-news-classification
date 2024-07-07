@@ -41,3 +41,4 @@ google-crc32c==1.5.0
 google-resumable-media==2.7.1
 googleapis-common-protos==1.63.1
 evidently==0.4.30
+prometheus-fastapi-instrumentator==7.0.0
