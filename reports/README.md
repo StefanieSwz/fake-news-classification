@@ -80,10 +80,10 @@ curriculum in this course. Therefore, we do not expect at all that you have chec
 * [X] Get some continuous integration running on the GitHub repository
 * [X] Create a data storage in GCP Bucket for you data and preferable link this with your data version control setup
 * [X] Create a trigger workflow for automatically building your docker images
-* [ ] Get your model training in GCP using either the Engine or Vertex AI
+* [X] Get your model training in GCP using either the Engine or Vertex AI
 * [X] Create a FastAPI application that can do inference using your model
 * [ ] If applicable, consider deploying the model locally using torchserve
-* [ ] Deploy your model in GCP using either Functions or Run as the backend
+* [X] Deploy your model in GCP using either Functions or Run as the backend
 
 ### Week 3
 
@@ -131,7 +131,7 @@ curriculum in this course. Therefore, we do not expect at all that you have chec
 >
 > Answer:
 
---- We used the third-aprty framework PyTorch, respectively torch lightning in out project. We used functionality ... @ Toby ---
+--- We used the third-party framework PyTorch, respectively torch lightning in out project. We used functionality ... @ Toby ---
 
 ## Coding environment
 
@@ -375,7 +375,13 @@ Link to trainer docker file: https://github.com/StefanieSwz/fake-news-classifica
 >
 > Answer:
 
---- question 17 fill here ---
+--- We used the followng services:
+- **Buckets** in the Cloud Storage with object versioning to store the data and best model weights.
+- **Artifact registry** where the docker images are stored and we set up a **Trigger** to use continuous integration, i.e. the Trigger automatically starts the building process of an image each time we push code to the repository.
+- **Vertex AI** to train the model on CPUs. With Vertex AI, we can create custom jobs and use the docker containers that have everything to run our code, while the virtual machine is automatically created and then shut down after training. Although it is also possible to train on a GPU using Vertex AI, we did not get an approval to increase quota.
+- **Compute Engine** to train the model on both, CPUs and GPUs. To train with a GPU, we used a Nvidia T4 GPU with a public deep learning image that has Python 3.10 and CUDA 12.1 preinstalled. The training on a CPU uses an `e2-standard-4` as machine type.
+- **Cloud Run** to deploy the model with a frontend and backend application.
+- **Secret Manager** to store Weights and Biases API key to make code runnable in the Cloud. ---
 
 ### Question 18
 
@@ -390,7 +396,7 @@ Link to trainer docker file: https://github.com/StefanieSwz/fake-news-classifica
 >
 > Answer:
 
---- question 18 fill here ---
+--- We used the compute engine to train our models. We created two Virtual Machines, one to train on a GPU, the other to train on a CPU. For the VM with a GPU, we used a Nvidia T4 and a public Deep Learning image that has Python 3.10 and CUDA 12.1 preinstalled. The training on a CPU uses an `e2-standard-4` as machine type. @Steffi, nochmal drüber schauen bitte. ---
 
 ### Question 19
 
@@ -399,7 +405,8 @@ Link to trainer docker file: https://github.com/StefanieSwz/fake-news-classifica
 >
 > Answer:
 
---- question 19 fill here ---
+--- Buckets for storing data and model weights:
+![figure](figures/buckets.png) ---
 
 ### Question 20
 
@@ -408,7 +415,8 @@ Link to trainer docker file: https://github.com/StefanieSwz/fake-news-classifica
 >
 > Answer:
 
---- question 20 fill here ---
+--- Images of training, predicting as well as deployment of backend and frontend:
+![figure](figures/artifacts.png) ---
 
 ### Question 21
 
@@ -417,7 +425,8 @@ Link to trainer docker file: https://github.com/StefanieSwz/fake-news-classifica
 >
 > Answer:
 
---- question 21 fill here ---
+--- Build history with images triggered from local and by pushing into the repository:
+![figure](figures/builds.png) ---
 
 ### Question 22
 
@@ -433,7 +442,7 @@ Link to trainer docker file: https://github.com/StefanieSwz/fake-news-classifica
 >
 > Answer:
 
---- question 22 fill here ---
+--- For deployment we wrapped our model into application using FastAPI. We first deployed the model locally, which worked. Afterwards we deployed it in the cloud, using Cloud Run. To invoke the service an user would call ---
 
 ### Question 23
 
