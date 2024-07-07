@@ -3,21 +3,21 @@ import shutil
 import tempfile
 import pandas as pd
 import hydra
-from fastapi import FastAPI, UploadFile, File, Query
+from datetime import datetime
+from fastapi import BackgroundTasks, FastAPI, UploadFile, File, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import torch
-import wandb
-from fakenews.config import (
-    MODEL_REGISTRY,
-    WANDB_API_KEY,
-    WANDB_ENTITY,
-    WANDB_PROJECT,
-)
+from prometheus_fastapi_instrumentator import Instrumentator
+from prometheus_client import Counter, generate_latest, REGISTRY, CONTENT_TYPE_LATEST
+from starlette.responses import Response
 from fakenews.data.preprocessing import DataPreprocessor
 from fakenews.model.model import BERTClass
+from fakenews.config import add_to_database, download_model_from_gcs
 
 app = FastAPI()
+
+counter_requests = Counter("requests", "Number of requests made to FastAPI inference app.")
 
 
 class Title(BaseModel):
@@ -28,30 +28,24 @@ class Title(BaseModel):
 model = None
 device = None
 cfg = None
-artifact_dir = None
 
 
 @app.on_event("startup")
 async def startup_event():
     global model, device, cfg, artifact_dir
 
-    # Initialize wandb
-    wandb.login(key=WANDB_API_KEY)
-    run = wandb.init(project=WANDB_PROJECT, entity=WANDB_ENTITY)
-
     # Load Hydra configuration
     with hydra.initialize(config_path="../../config", version_base="1.2"):
         cfg = hydra.compose(config_name="config")
 
-    # Use the model artifact from wandb
-    artifact = run.use_artifact(f"{WANDB_ENTITY}/model-registry/{MODEL_REGISTRY}:best", type="model")
-
-    # Download the artifact to a temporary directory
-    artifact_dir = tempfile.TemporaryDirectory()
-    artifact.download(root=artifact_dir.name)
+    # Download the model from GCS
+    bucket_name = cfg.cloud.bucket_name_model
+    model_path = os.path.join(cfg.cloud.model_dir, "best_model.ckpt")
+    local_model_path = os.path.join(tempfile.gettempdir(), "model.ckpt")
+    download_model_from_gcs(bucket_name, model_path, local_model_path)
 
     # Load the trained model
-    model = BERTClass.load_from_checkpoint(os.path.join(artifact_dir.name, "model.ckpt"), cfg=cfg)
+    model = BERTClass.load_from_checkpoint(os.path.join(local_model_path), cfg=cfg)
 
     # Determine the device (CPU, GPU, MPS)
     device = torch.device(
@@ -65,15 +59,16 @@ async def startup_event():
 
 @app.post("/predict/")
 async def predict(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     batch_size: int = Query(default=None, description="Batch size for prediction"),
     max_length: int = Query(default=None, description="Max length for preprocessing"),
 ):
     """Generate predictions for the uploaded CSV file."""
-    global model, device, cfg, artifact_dir
+    global model, device, cfg
 
     # Ensure model, device, and cfg are initialized
-    if model is None or device is None or cfg is None or artifact_dir is None:
+    if model is None or device is None or cfg is None:
         await startup_event()
 
     # Use parameters from the request or fallback to Hydra config
@@ -97,6 +92,7 @@ async def predict(
 
         # Predict
         predictions = []
+        db_predictions = []
         with torch.no_grad():
             for batch in predict_dataloader:
                 sent_id, mask = [t.to(device) for t in batch]
@@ -107,6 +103,7 @@ async def predict(
 
         # Convert predictions to a DataFrame and then to JSON
         result = []
+        now = str(datetime.now())
         for title, pred, prob in predictions:
             result.append(
                 {
@@ -116,18 +113,23 @@ async def predict(
                     "probability": prob[1] if pred == 1 else prob[0],
                 }
             )
+            counter_requests.inc()  # Increment by 1
+            db_predictions.append((now, str(title), pred, prob[1] if pred == 1 else prob[0]))
+        background_tasks.add_task(add_to_database, cfg, db_predictions)
         return JSONResponse(result)
 
 
 @app.post("/predict_single/")
 async def predict_single(
-    title: Title, max_length: int = Query(default=None, description="Max length for preprocessing")
+    background_tasks: BackgroundTasks,
+    title: Title,
+    max_length: int = Query(default=None, description="Max length for preprocessing"),
 ):
     """Generate prediction for a single title."""
-    global model, device, cfg, artifact_dir
+    global model, device, cfg
 
     # Ensure model, device, and cfg are initialized
-    if model is None or device is None or cfg is None or artifact_dir is None:
+    if model is None or device is None or cfg is None:
         await startup_event()
 
     max_length = max_length or cfg.preprocess.max_length
@@ -154,10 +156,26 @@ async def predict_single(
                 "predicted_label": pred.item(),
                 "probability": probs[0][1].item() if pred.item() == 1 else probs[0][0].item(),
             }
+            counter_requests.inc()  # Increment by 1
+            now = str(datetime.now())
+            background_tasks.add_task(
+                add_to_database,
+                cfg,
+                [(now, title, prediction["predicted_label"], prediction["probability"])],
+            )
             return JSONResponse(prediction)
+
+
+Instrumentator().instrument(app).expose(app)
+
+
+@app.get("/metrics")
+async def metrics():
+    return Response(generate_latest(REGISTRY), media_type=CONTENT_TYPE_LATEST)
 
 
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 8080))  # Ensure this port matches the Dockerfile EXPOSE port
+    uvicorn.run(app, host="0.0.0.0", port=port)

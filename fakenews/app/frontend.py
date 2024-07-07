@@ -66,7 +66,12 @@ def main():
     max_length_csv = st.number_input("Max Length for CSV", min_value=1, value=25)
 
     if uploaded_file is not None:
-        result = classify_csv(uploaded_file, backend_url=backend_url, batch_size=batch_size, max_length=max_length_csv)
+        result = classify_csv(
+            uploaded_file,
+            backend_url=backend_url,
+            batch_size=batch_size,
+            max_length=max_length_csv,
+        )
 
         if result is not None:
             # Display the prediction results

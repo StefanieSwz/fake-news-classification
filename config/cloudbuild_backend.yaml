@@ -1,0 +1,42 @@
+steps:
+# Build trainer image
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'Build container image backend'
+  args: [
+    'build',
+    '.',
+    '-t',
+    'europe-west3-docker.pkg.dev/mlops-fakenews/mlops-fakenews-container/backend:latest',
+    '-f',
+    './docker/backend.dockerfile'
+  ]
+  secretEnv:
+    - 'SERVICE_ACCOUNT_CREDENTIALS'
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'Push container image backend'
+  args: [
+    'push',
+    'europe-west3-docker.pkg.dev/mlops-fakenews/mlops-fakenews-container/backend:latest'
+  ]
+#- name: 'gcr.io/cloud-builders/gcloud'
+#  id: 'Deploy to Cloud Run'
+#  args: [
+#    'run',
+#    'deploy',
+#    'backend',
+#    '--image',
+#    'europe-west3-docker.pkg.dev/mlops-fakenews/mlops-fakenews-container/backend:latest',
+#    '--region',
+#    'europe-west3',
+#    '--platform',
+#    'managed',
+#    '--allow-unauthenticated'
+#  ]
+#  secretEnv:
+#    - 'SERVICE_ACCOUNT_CREDENTIALS'
+availableSecrets:
+  secretManager:
+  - versionName: 'projects/mlops-fakenews/secrets/SERVICE_ACCOUNT_CREDENTIALS/versions/latest'
+    env: 'SERVICE_ACCOUNT_CREDENTIALS'
+options:
+  logging: CLOUD_LOGGING_ONLY
