@@ -1,4 +1,4 @@
-# docker/frontend.dockerfile
+# docker/backend.dockerfile
 FROM python:3.11-slim
 
 EXPOSE 8080
@@ -26,6 +26,7 @@ RUN pip install --upgrade pip && \
 
 # Set the Python path
 ENV PYTHONPATH="${PYTHONPATH}:/fakenews"
-ENV PORT 8080
 
-CMD ["streamlit", "run", "fakenews/app/frontend.py", "--server.port", "8080"]
+# Set Google Application Credentials
+ENV PORT 8080
+CMD ["uvicorn", "fakenews.app.monitoring_app:app", "--host", "0.0.0.0", "--port", "8080"]

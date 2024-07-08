@@ -10,6 +10,9 @@ import pandas as pd
 from omegaconf import DictConfig
 from google.cloud import secretmanager, storage
 
+import streamlit as st
+from google.cloud import run_v2
+
 import tempfile
 
 
@@ -100,21 +103,25 @@ def setup_data_directories(cfg: DictConfig):
             - predict_data_dir (str): Path to the temporary directory for prediction data.
             - processed_data_dir (str): Path to the temporary directory for processed data.
             - raw_data_dir (str): Path to the temporary directory for raw data.
+            - monitoring_data_dir (str): Path to the temporary directory for monitoring data.
     """
     # Create temporary directories
     raw_data_dir = tempfile.mkdtemp()
     processed_data_dir = tempfile.mkdtemp()
     predict_data_dir = tempfile.mkdtemp()
+    monitoring_data_dir = tempfile.mkdtemp()
 
     # Access raw and processed data from Google Cloud Storage
     raw_data = get_blob_from_gcs(cfg.cloud.bucket_name_data, "data/raw/fake-news-classification.zip")
     processed_data = get_blob_from_gcs(cfg.cloud.bucket_name_data, "data/processed/preprocessed_data.csv")
     predict_data = get_blob_from_gcs(cfg.cloud.bucket_name_data, "data/predict/predict_data.csv")
+    monitoring_data = get_blob_from_gcs(cfg.cloud.bucket_name_data, "data/monitoring/monitoring_db.csv")
 
     # Save raw and processed data to temporary files
     raw_data_path = os.path.join(raw_data_dir, "fake-news-classification.zip")
     processed_data_path = os.path.join(processed_data_dir, "preprocessed_data.csv")
     predict_data_path = os.path.join(predict_data_dir, "predict_data.csv")
+    monitoring_data_path = os.path.join(monitoring_data_dir, "monitoring_db.csv")
 
     with open(raw_data_path, "wb") as f:
         f.write(raw_data)
@@ -125,7 +132,10 @@ def setup_data_directories(cfg: DictConfig):
     with open(predict_data_path, "wb") as f:
         f.write(predict_data)
 
-    return predict_data_dir, processed_data_dir, raw_data_dir
+    with open(monitoring_data_path, "wb") as f:
+        f.write(monitoring_data)
+
+    return predict_data_dir, processed_data_dir, raw_data_dir, monitoring_data_dir
 
 
 def upload_to_gcs(file_obj, bucket_name, destination_blob_name):
@@ -191,7 +201,7 @@ def create_tmp_model_folder(cfg: DictConfig, local: bool, best_artifact):
                 upload_to_gcs(model_bytes, gcs_bucket_name, gcs_model_path)
 
 
-def upload_string_to_gcs(content, bucket_name, destination_blob_name):
+def upload_string_to_gcs(content, bucket_name, destination_blob_name, content_type="text/csv"):
     """
     Upload a string to a Google Cloud Storage (GCS) bucket.
 
@@ -201,6 +211,7 @@ def upload_string_to_gcs(content, bucket_name, destination_blob_name):
         content (str): The file object to be uploaded. The file pointer should be at the beginning of the file.
         bucket_name (str): The name of the GCS bucket to upload the file to.
         destination_blob_name (str): The destination path and name of the blob in the GCS bucket.
+        content_type (str): The MIME type of the content to be uploaded. Defaults to 'text/csv'.
 
     Returns:
         None
@@ -208,7 +219,7 @@ def upload_string_to_gcs(content, bucket_name, destination_blob_name):
     client = storage.Client()
     bucket = client.bucket(bucket_name)
     blob = bucket.blob(destination_blob_name)
-    blob.upload_from_string(content, content_type="text/csv")
+    blob.upload_from_string(content, content_type=content_type)
     print(f"Uploaded to GCS: gs://{bucket_name}/{destination_blob_name}")
 
 
@@ -335,3 +346,15 @@ def add_to_database(cfg: DictConfig, predictions: list) -> None:
 
     # Upload the updated CSV string to GCS
     upload_string_to_gcs(csv_data, bucket_name, blob_name)
+
+
+@st.cache_resource
+def get_backend_url(service_name="backend", url="BACKEND_URL"):
+    """Get the URL of the backend service."""
+    parent = "projects/mlops-fakenews/locations/europe-west3"
+    client = run_v2.ServicesClient()
+    services = client.list_services(parent=parent)
+    for service in services:
+        if service.name.split("/")[-1] == service_name:
+            return service.uri
+    return os.getenv(url, None)

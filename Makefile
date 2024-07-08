@@ -93,9 +93,14 @@ transform_model:
 	$(PYTHON_INTERPRETER) fakenews/model/transform_model.py ${ARGS}
 
 ## Make test_apis
-.PHONY: test_apis
-test_apis:
-	$(PYTHON_INTERPRETER) -m pytest tests/integrationtests/test_apis.py ${ARGS}
+.PHONY: test_inference
+test_inference:
+	$(PYTHON_INTERPRETER) -m pytest tests/integrationtests/test_inference.py ${ARGS}
+
+## Make test_apis
+.PHONY: test_monitoring
+test_monitoring:
+	$(PYTHON_INTERPRETER) -m pytest tests/integrationtests/test_monitoring.py ${ARGS}
 
 ## Make test_load
 .PHONY: test_load

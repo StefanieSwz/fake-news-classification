@@ -1,7 +1,8 @@
 import pandas as pd
-import datetime
+import hydra
 from evidently import ColumnMapping
 from evidently.report import Report
+from datetime import datetime
 from evidently.metric_preset import (
     DataDriftPreset,
     DataQualityPreset,
@@ -15,7 +16,6 @@ from evidently.metrics import (
     TextDescriptorsCorrelationMetric,
     EmbeddingsDriftMetric,
 )
-
 from evidently.test_suite import TestSuite
 from evidently.tests import (
     TestShareOfDriftedColumns,
@@ -25,8 +25,18 @@ from evidently.tests import (
     TestEmbeddingsDrift,
 )
 from transformers import CLIPProcessor, CLIPModel
+from fakenews.config import setup_data_directories, upload_string_to_gcs
+from pathlib import Path
+import tempfile
 
-from fakenews.config import PROCESSED_DATA_DIR, MONITORING_DATA_DIR, MONITORING_DIR
+with hydra.initialize(config_path="../../config", version_base="1.2"):
+    cfg = hydra.compose(config_name="config")
+_, PROCESSED_DATA_DIR, _, MONITORING_DATA_DIR = setup_data_directories(cfg=cfg)
+print(PROCESSED_DATA_DIR, MONITORING_DATA_DIR)
+
+# Convert to Path objects
+PROCESSED_DATA_DIR = Path(PROCESSED_DATA_DIR)
+MONITORING_DATA_DIR = Path(MONITORING_DATA_DIR)
 
 
 def filter_dataframe(df, filter_value):
@@ -42,10 +52,8 @@ def filter_dataframe(df, filter_value):
         pd.DataFrame: The filtered DataFrame.
     """
     if isinstance(filter_value, int):
-        # Return the last n entries
         return df.tail(filter_value)
     elif isinstance(filter_value, datetime):
-        # Filter out observations earlier than the datetime
         return df[df["timestamp"] >= filter_value]
     else:
         raise ValueError("filter_value must be either an integer or a datetime object")
@@ -67,7 +75,6 @@ current_data["prediction"] = current_data["label"]
 model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
 processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
-# set either text=None or images=None when only the other is needed
 inputs_reference = processor(
     text=reference_data["title"].tolist(),
     images=None,
@@ -82,7 +89,6 @@ emb_reference_df = pd.DataFrame(
     embeddings_reference, columns=[f"col{i+1}" for i in range(embeddings_reference.shape[1])]
 )
 reference_data.reset_index(drop=True, inplace=True)
-# reference_data["embedding"] = text_features_reference.tolist()
 reference_data = pd.concat(
     [
         reference_data,
@@ -91,7 +97,6 @@ reference_data = pd.concat(
     axis=1,
 )
 
-# set either text=None or images=None when only the other is needed
 inputs_current = processor(
     text=current_data["title"].tolist(),
     images=None,
@@ -104,15 +109,14 @@ text_features_current = model.get_text_features(inputs_current["input_ids"], inp
 embeddings_current = text_features_current.detach().numpy()
 emb_current_df = pd.DataFrame(embeddings_current, columns=[f"col{i+1}" for i in range(embeddings_current.shape[1])])
 current_data.reset_index(drop=True, inplace=True)
-# current_data["embedding"] = text_features_current.tolist()
 current_data = pd.concat([current_data, emb_current_df], axis=1)
 
 column_mapping = ColumnMapping()
-column_mapping.target = "label"  #'y' is the name of the column with the target function
+column_mapping.target = "label"
 column_mapping.prediction = "prediction"
-column_mapping.id = None  # there is no ID column in the dataset
+column_mapping.id = None
 column_mapping.embeddings = {"embedding": reference_data.columns[3:]}
-column_mapping.text_features = ["title"]  #'title' is the name of the column with strings
+column_mapping.text_features = ["title"]
 column_mapping.target_names = {"0": "True", "1": "Fake"}
 column_mapping.task = "classification"
 
@@ -127,10 +131,18 @@ report_general = Report(
     ]
 )
 report_general.run(reference_data=reference_data, current_data=current_data, column_mapping=column_mapping)
-report_path = MONITORING_DIR / "data_drift_report.html"
-report_general.save_html(str(report_path))
+with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as tmp:
+    report_general.save_html(tmp.name)
+    with open(tmp.name, "r") as file:
+        report_general_html = file.read()
+upload_string_to_gcs(
+    report_general_html,
+    cfg.cloud.bucket_name_data,
+    "reports/monitoring/data_drift_report.html",
+    content_type="text/html",
+)
 
-# general tests
+# General tests
 data_test = TestSuite(
     tests=[
         TestNumberOfEmptyRows(),
@@ -141,10 +153,15 @@ data_test = TestSuite(
     ]
 )
 data_test.run(reference_data=reference_data, current_data=current_data, column_mapping=column_mapping)
-data_test_path = MONITORING_DIR / "data_drift_tests.html"
-data_test.save_html(str(data_test_path))
+with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as tmp:
+    data_test.save_html(tmp.name)
+    with open(tmp.name, "r") as file:
+        data_test_html = file.read()
+upload_string_to_gcs(
+    data_test_html, cfg.cloud.bucket_name_data, "reports/monitoring/data_drift_tests.html", content_type="text/html"
+)
 
-# text metrics
+# Text metrics
 text_specific_metrics_report = Report(
     metrics=[
         TextDescriptorsDistribution(column_name="title"),
@@ -156,5 +173,13 @@ text_specific_metrics_report = Report(
 text_specific_metrics_report.run(
     reference_data=reference_data, current_data=current_data, column_mapping=column_mapping
 )
-text_specific_metrics_report_path = MONITORING_DIR / "text_drift_metrics.html"
-text_specific_metrics_report.save_html(str(text_specific_metrics_report_path))
+with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as tmp:
+    text_specific_metrics_report.save_html(tmp.name)
+    with open(tmp.name, "r") as file:
+        text_metrics_html = file.read()
+upload_string_to_gcs(
+    text_metrics_html,
+    cfg.cloud.bucket_name_data,
+    "reports/monitoring/text_drift_metrics.html",
+    content_type="text/html",
+)

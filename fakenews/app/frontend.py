@@ -1,5 +1,6 @@
 import requests
 import streamlit as st
+from fakenews.config import get_backend_url
 
 
 def classify_csv(file, backend_url, batch_size, max_length):
@@ -54,9 +55,10 @@ def main():
     Provides an interface to upload a CSV file or enter a single title for classification
     using a FastAPI backend.
     """
+    backend = get_backend_url()
+    if backend is None:
+        raise ValueError("Backend service not found")
     st.title("Fake News Classification")
-
-    backend_url = "http://127.0.0.1:8000"  # URL of your FastAPI backend
 
     st.header("Classify a CSV File")
     uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
@@ -68,7 +70,7 @@ def main():
     if uploaded_file is not None:
         result = classify_csv(
             uploaded_file,
-            backend_url=backend_url,
+            backend_url=backend,
             batch_size=batch_size,
             max_length=max_length_csv,
         )
@@ -92,7 +94,7 @@ def main():
 
     if st.button("Classify Title"):
         if single_title:
-            result = classify_single(single_title, backend_url=backend_url, max_length=max_length_single)
+            result = classify_single(single_title, backend_url=backend, max_length=max_length_single)
 
             if result is not None:
                 st.write(f"Title: {result['title']}")

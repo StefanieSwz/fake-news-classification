@@ -38,7 +38,7 @@ def predict(cfg: DictConfig):
     if cfg.predict.local_data:
         from fakenews.config import PREDICT_DATA_DIR
     else:
-        PREDICT_DATA_DIR, _, _ = setup_data_directories(cfg=cfg)
+        PREDICT_DATA_DIR, _, _, _ = setup_data_directories(cfg=cfg)
 
     # Initialize wandb
     wandb.login(key=WANDB_API_KEY)

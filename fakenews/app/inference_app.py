@@ -4,7 +4,7 @@ import tempfile
 import pandas as pd
 import hydra
 from datetime import datetime
-from fastapi import BackgroundTasks, FastAPI, UploadFile, File, Query
+from fastapi import BackgroundTasks, FastAPI, UploadFile, File, Query, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import torch
@@ -32,7 +32,7 @@ cfg = None
 
 @app.on_event("startup")
 async def startup_event():
-    global model, device, cfg, artifact_dir
+    global model, device, cfg
 
     # Load Hydra configuration
     with hydra.initialize(config_path="../../config", version_base="1.2"):
@@ -71,6 +71,10 @@ async def predict(
     if model is None or device is None or cfg is None:
         await startup_event()
 
+    # Check if the file is a CSV
+    if not file.filename.endswith(".csv"):
+        raise HTTPException(status_code=422, detail="Invalid file type. Please upload a CSV file.")
+
     # Use parameters from the request or fallback to Hydra config
     batch_size = batch_size or cfg.train.batch_size
     max_length = max_length or cfg.preprocess.max_length
@@ -86,6 +90,14 @@ async def predict(
 
         # Load CSV file
         data = pd.read_csv(file_path)
+
+        # Check if the CSV file is empty
+        if data.empty:
+            raise HTTPException(status_code=422, detail="Uploaded CSV file is empty.")
+
+        # Use parameters from the request or fallback to Hydra config
+        batch_size = batch_size or cfg.train.batch_size
+        max_length = max_length or cfg.preprocess.max_length
 
         # Prepare DataLoader for prediction data
         predict_dataloader = preprocessor.create_prediction_dataloader_from_df(data, batch_size=batch_size)
@@ -172,6 +184,14 @@ Instrumentator().instrument(app).expose(app)
 @app.get("/metrics")
 async def metrics():
     return Response(generate_latest(REGISTRY), media_type=CONTENT_TYPE_LATEST)
+
+
+@app.get("/")
+async def read_root():
+    """
+    Root endpoint providing a welcome message.
+    """
+    return {"message": "Welcome to the Fake News Inference API. Check /docs for API documentation."}
 
 
 if __name__ == "__main__":
