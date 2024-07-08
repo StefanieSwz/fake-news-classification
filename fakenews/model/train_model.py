@@ -6,14 +6,24 @@ import hydra
 from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
+from pytorch_lightning.callbacks import (
+    EarlyStopping,
+    ModelCheckpoint,
+    TQDMProgressBar,
+    ModelPruning,
+)
 from pytorch_lightning.loggers import WandbLogger
 import torch
 import yaml
+import wandb
 from fakenews.data.preprocessing import DataPreprocessor
 from fakenews.model.model import BERTClass
-import wandb
-from fakenews.config import MODELS_DIR, access_secret_version, setup_data_directories, compare_and_upload_best_model
+from fakenews.config import (
+    MODELS_DIR,
+    access_secret_version,
+    setup_data_directories,
+    compare_and_upload_best_model,
+)
 
 
 def preprocess_data(cfg: DictConfig, processed_data_dir):
@@ -116,6 +126,10 @@ def train_model(
 
     progress_bar = TQDMProgressBar(refresh_rate=cfg.train.refresh_rate)
     callbacks.append(progress_bar)
+
+    if cfg.train.pruning:
+        pruning_callback = ModelPruning("l1_unstructured", amount=0.3)
+        callbacks.append(pruning_callback)
 
     accelerator = "gpu" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 
