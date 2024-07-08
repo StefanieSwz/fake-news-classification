@@ -1,5 +1,7 @@
+import os
 import pandas as pd
 import hydra
+import uvicorn
 from fastapi import FastAPI, HTTPException
 from evidently import ColumnMapping
 from evidently.report import Report
@@ -310,3 +312,8 @@ async def read_root():
     Root endpoint providing a welcome message.
     """
     return {"message": "Welcome to the Fake News Monitoring API. Check /docs for API documentation."}
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8080))  # Ensure this port matches the Dockerfile EXPOSE port
+    uvicorn.run(app, host="0.0.0.0", port=port)

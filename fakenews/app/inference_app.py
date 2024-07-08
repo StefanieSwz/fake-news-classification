@@ -3,6 +3,7 @@ import shutil
 import tempfile
 import pandas as pd
 import hydra
+import uvicorn
 from datetime import datetime
 from fastapi import BackgroundTasks, FastAPI, UploadFile, File, Query, HTTPException
 from fastapi.responses import JSONResponse
@@ -195,7 +196,5 @@ async def read_root():
 
 
 if __name__ == "__main__":
-    import uvicorn
-
     port = int(os.environ.get("PORT", 8080))  # Ensure this port matches the Dockerfile EXPOSE port
     uvicorn.run(app, host="0.0.0.0", port=port)
