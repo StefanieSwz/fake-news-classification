@@ -18,6 +18,7 @@ import tempfile
 
 # Load environment variables from .env file if it exists
 load_dotenv()
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 WANDB_API_KEY = os.getenv("WANDB_API_KEY")
 WANDB_PROJECT = os.getenv("WANDB_PROJECT")
@@ -260,7 +261,8 @@ def compare_and_upload_best_model(cfg: DictConfig, model_checkpoint_path, val_lo
     try:
         best_val_loss_cloud = float(
             get_string_from_gcs(
-                cfg.cloud.bucket_name_model, os.path.join(cfg.cloud.val_loss_dir, cfg.cloud.val_loss_file)
+                cfg.cloud.bucket_name_model,
+                os.path.join(cfg.cloud.val_loss_dir, cfg.cloud.val_loss_file),
             )
         )
     except Exception as e:
@@ -270,7 +272,9 @@ def compare_and_upload_best_model(cfg: DictConfig, model_checkpoint_path, val_lo
         print("New best model found. Uploading to GCS.")
         with open(model_checkpoint_path, "rb") as model_file:
             upload_to_gcs(
-                model_file, cfg.cloud.bucket_name_model, os.path.join(cfg.cloud.model_dir, cfg.cloud.model_file)
+                model_file,
+                cfg.cloud.bucket_name_model,
+                os.path.join(cfg.cloud.model_dir, cfg.cloud.model_file),
             )
         upload_string_to_gcs(
             str(val_loss),
