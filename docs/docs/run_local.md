@@ -41,7 +41,7 @@ We used two different services to train on the Cloud, Vertex AI and the Compute 
 ### Vertex AI
 
 1. Check that `config_cpu.yaml` is in `config/`. It specifies the machine type we are using (`n1-highnem-2`) and the docker image saved in the Artifact registry `europe-west3-docker.pkg.dev/mlops-fakenews/mlops-fakenews-container/trainer:latest`.
-2. Train in the cloud by `gcloud ai custom-jobs create --region=europe-west3 --display-name=train-run --config=config_cpu.yaml --service-account=sa-mlops@mlops-fakenews.iam.gserviceaccount.com` optionally specify parameters: `--args train.epochs=1`
+2. Train in the cloud by `gcloud ai custom-jobs create --region=europe-west3 --display-name=train-run --config=config/config_cpu.yaml --service-account=sa-mlops@mlops-fakenews.iam.gserviceaccount.com` optionally specify parameters: `--args train.epochs=1`
 
 3. Monitor on GCP: `Vertex AI > Training > Custom Jobs > View Logs`
 
