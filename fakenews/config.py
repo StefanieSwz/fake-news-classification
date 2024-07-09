@@ -41,6 +41,7 @@ MONITORING_DATA_DIR = DATA_DIR / "monitoring"
 MODELS_DIR = PROJ_ROOT / "models"
 BEST_MODEL = MODELS_DIR / "best_model"
 DEPLOY_MODEL = MODELS_DIR / "deploy"
+QUANTIZED_MODEL = MODELS_DIR / "quantized_model"
 
 REPORTS_DIR = PROJ_ROOT / "reports"
 FIGURES_DIR = REPORTS_DIR / "figures"
@@ -368,3 +369,21 @@ def get_backend_url(service_name="backend", url="BACKEND_URL", timeout=120):
         print("Timeout exceeded while fetching the backend URL.")
 
     return os.getenv(url, None)
+
+
+def load_gc_model(cfg: DictConfig):
+    """
+    Download a model from Google Cloud Storage (GCS).
+
+    Args:
+        cfg (DictConfig): Configuration object containing GCS parameters.
+
+    Returns:
+        str: Local path to the downloaded model checkpoint.
+    """
+    bucket_name = cfg.cloud.bucket_name_model
+    model_path = os.path.join(cfg.cloud.model_dir, "best_model.ckpt")
+    local_model_path = os.path.join(tempfile.gettempdir(), "model.ckpt")
+    download_model_from_gcs(bucket_name, model_path, local_model_path)
+
+    return local_model_path

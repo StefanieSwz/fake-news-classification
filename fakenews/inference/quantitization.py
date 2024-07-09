@@ -1,16 +1,26 @@
 import os
 import torch
-from fakenews.config import BEST_MODEL, PROCESSED_DATA_DIR, MODELS_DIR
+import time
+from fakenews.config import MODELS_DIR, load_gc_model
 from fakenews.model.model import BERTClass
-from fakenews.data.preprocessing import DataPreprocessor
 import hydra
-from transformers import BertTokenizer
-from transformers import AutoModel
-from sklearn.metrics import confusion_matrix, accuracy_score, f1_score
+from transformers import BertTokenizer, AutoModel
 from thop import profile
+import multiprocessing
 
 
 class PlainBERTModel(torch.nn.Module):
+    """
+    A plain PyTorch model class wrapping a pretrained BERT model with additional layers for fine-tuning.
+
+    Args:
+        model_name (str): The name of the pretrained BERT model.
+        hidden_size (int): The hidden size of the BERT model.
+        intermediate_size (int): The size of the intermediate layer.
+        output_size (int): The size of the output layer.
+        dropout_rate (float): The dropout rate.
+    """
+
     def __init__(self, model_name, hidden_size, intermediate_size, output_size, dropout_rate):
         super(PlainBERTModel, self).__init__()
         self.bert = AutoModel.from_pretrained(model_name)
@@ -21,6 +31,16 @@ class PlainBERTModel(torch.nn.Module):
         self.softmax = torch.nn.LogSoftmax(dim=1)
 
     def forward(self, sent_id, mask):
+        """
+        Forward pass for the model.
+
+        Args:
+            sent_id (torch.Tensor): The input IDs of the sentences.
+            mask (torch.Tensor): The attention masks.
+
+        Returns:
+            torch.Tensor: The output logits of the model.
+        """
         cls_hs = self.bert(sent_id, attention_mask=mask)["pooler_output"]
         x = self.fc1(cls_hs)
         x = self.relu(x)
@@ -30,34 +50,42 @@ class PlainBERTModel(torch.nn.Module):
         return x
 
 
-def evaluate_model(model, test_dataloader, device):
+def measure_inference_time(model, input_ids, attention_mask, device, num_runs=100):
+    """
+    Measure the average inference time of a model.
+
+    Args:
+        model (torch.nn.Module): The model to evaluate.
+        input_ids (torch.Tensor): The input IDs.
+        attention_mask (torch.Tensor): The attention masks.
+        device (torch.device): The device to run the model on.
+        num_runs (int, optional): The number of runs to average. Defaults to 100.
+
+    Returns:
+        float: The average inference time.
+    """
     model.to(device)
     model.eval()
-    all_preds = []
-    all_labels = []
+    times = []
     with torch.no_grad():
-        for batch in test_dataloader:
-            sent_id, mask, labels = batch
-            sent_id, mask = sent_id.to(device), mask.to(device)
-            outputs = model(sent_id=sent_id, mask=mask)
-            _, preds = torch.max(outputs, dim=1)
-            all_preds.extend(preds.cpu().numpy())
-            all_labels.extend(labels.cpu().numpy())
-
-    accuracy = accuracy_score(all_labels, all_preds)
-    f1 = f1_score(all_labels, all_preds, average="weighted")
-    conf_matrix = confusion_matrix(all_labels, all_preds)
-
-    return accuracy, f1, conf_matrix
+        for _ in range(num_runs):
+            start_time = time.time()
+            _ = model(input_ids, attention_mask)
+            times.append(time.time() - start_time)
+    avg_time = sum(times) / num_runs
+    return avg_time
 
 
 def main():
+    """
+    Main function to load the model, quantize it, and measure inference times.
+    """
     with hydra.initialize(config_path="../../config", version_base="1.2"):
         cfg = hydra.compose(config_name="config")
 
-    # Load the model checkpoint
-    model_checkpoint_path = os.path.join(BEST_MODEL, "model" + ".ckpt")
-    pl_model = BERTClass.load_from_checkpoint(model_checkpoint_path, cfg=cfg)
+    # Download the model from GCS
+    local_model_path = load_gc_model(cfg)
+    pl_model = BERTClass.load_from_checkpoint(os.path.join(local_model_path), cfg=cfg)
 
     # Create a plain PyTorch model
     plain_model = PlainBERTModel(
@@ -72,6 +100,7 @@ def main():
     plain_model.load_state_dict(pl_model.state_dict())
     plain_model.to("cpu")
     device = torch.device("cpu")
+    print(plain_model)
 
     # Calculate FLOPs
     tokenizer = BertTokenizer.from_pretrained(cfg.model.name)
@@ -85,12 +114,13 @@ def main():
     flops, params = profile(plain_model, inputs=(input_ids, attention_mask))
     print(f"Original Model - FLOPs: {flops}, Params: {params}")
 
+    # Measure inference time for the original model
+    original_inference_time = measure_inference_time(plain_model, input_ids, attention_mask, device)
+    print(f"Original Model - Average Inference Time: {original_inference_time}")
+
     # Quantization
     torch.backends.quantized.engine = "qnnpack"
-
     quantized_model = torch.quantization.quantize_dynamic(plain_model, {torch.nn.Linear}, dtype=torch.qint8)
-
-    print("Quantized model:", quantized_model)
 
     quantized_model_path = os.path.join(MODELS_DIR, "quantized_model.pth")
     torch.save(quantized_model.state_dict(), quantized_model_path)
@@ -100,30 +130,11 @@ def main():
     state_dict = torch.load(quantized_model_path)
     quantized_model.load_state_dict(state_dict)
 
-    # Calculate FLOPs for the quantized model
-    flops, params = profile(quantized_model, inputs=(input_ids, attention_mask))
-    print(f"Quantized Model - FLOPs: {flops}, Params: {params}")
-
-    # Evaluate the quantized model
-    quantized_model.to(device)
-
-    preprocessor = DataPreprocessor(data_dir=PROCESSED_DATA_DIR, max_length=cfg.preprocess.max_length)
-    _, _, test_dataloader = preprocessor.process(
-        batch_size=cfg.train.batch_size,
-        test_size=cfg.train.test_size,
-        val_size=cfg.train.val_size,
-        random_state=cfg.train.random_state,
-        processed_data_dir=PROCESSED_DATA_DIR,
-    )
-
-    quantized_accuracy, quantized_f1, quantized_conf_matrix = evaluate_model(quantized_model, test_dataloader, device)
-    print(f"Quantized Model - Accuracy: {quantized_accuracy}")
-    print(f"Quantized Model - F1 Score: {quantized_f1}")
-    print(f"Quantized Model - Confusion Matrix:\n{quantized_conf_matrix}")
+    # Measure inference time for the quantized model
+    quantized_inference_time = measure_inference_time(quantized_model, input_ids, attention_mask, device)
+    print(f"Quantized Model - Average Inference Time: {quantized_inference_time}")
 
 
 if __name__ == "__main__":
-    import multiprocessing
-
     multiprocessing.set_start_method("spawn")
     main()

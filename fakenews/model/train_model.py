@@ -203,7 +203,7 @@ def eval_model(cfg: DictConfig, model_dir: str, test_dataloader, wandb_project, 
     return result[0]["test_loss"]
 
 
-def run_sweep(cfg: DictConfig, processed_data_dir, models_dir, wandb_project, wandb_entity):
+def run_sweep(cfg: DictConfig, processed_data_dir, models_dir, wandb_api_key, wandb_project, wandb_entity):
     """
     Run a Weights & Biases sweep.
 
@@ -225,6 +225,7 @@ def run_sweep(cfg: DictConfig, processed_data_dir, models_dir, wandb_project, wa
         sweep_config = yaml.safe_load(file)
         print(sweep_config)
 
+    wandb.login(key=wandb_api_key)
     # Initialize wandb sweep
     sweep_id = wandb.sweep(sweep_config, project=wandb_project, entity=wandb_entity)
 
@@ -368,7 +369,7 @@ def main(cfg: DictConfig):
         _, PROCESSED_DATA_DIR, _, _ = setup_data_directories(cfg=cfg)
 
     if cfg.train.sweep:
-        run_sweep(cfg, PROCESSED_DATA_DIR, MODELS_DIR, WANDB_PROJECT, WANDB_ENTITY)
+        run_sweep(cfg, PROCESSED_DATA_DIR, MODELS_DIR, WANDB_API_KEY, WANDB_PROJECT, WANDB_ENTITY)
     else:
         train_fixed(cfg, PROCESSED_DATA_DIR, MODELS_DIR, WANDB_API_KEY, WANDB_PROJECT, WANDB_ENTITY)
 

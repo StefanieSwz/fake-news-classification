@@ -14,7 +14,7 @@ from prometheus_client import Counter, generate_latest, REGISTRY, CONTENT_TYPE_L
 from starlette.responses import Response
 from fakenews.data.preprocessing import DataPreprocessor
 from fakenews.model.model import BERTClass
-from fakenews.config import add_to_database, download_model_from_gcs
+from fakenews.config import add_to_database, load_gc_model
 
 app = FastAPI()
 
@@ -40,10 +40,7 @@ async def startup_event():
         cfg = hydra.compose(config_name="config")
 
     # Download the model from GCS
-    bucket_name = cfg.cloud.bucket_name_model
-    model_path = os.path.join(cfg.cloud.model_dir, "best_model.ckpt")
-    local_model_path = os.path.join(tempfile.gettempdir(), "model.ckpt")
-    download_model_from_gcs(bucket_name, model_path, local_model_path)
+    local_model_path = load_gc_model(cfg)
 
     # Load the trained model
     model = BERTClass.load_from_checkpoint(os.path.join(local_model_path), cfg=cfg)
