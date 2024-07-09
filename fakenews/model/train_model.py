@@ -118,7 +118,7 @@ def train_model(
         save_weights_only=False,
     )
     callbacks.append(checkpoint_callback)
-
+    print("Callbacks:", callbacks)
     early_stopping_callback = EarlyStopping(
         monitor="val_loss", patience=cfg.train.patience, verbose=cfg.train.verbose, mode="min"
     )
@@ -138,7 +138,7 @@ def train_model(
         project=wandb_project,
         entity=wandb_entity,
     )
-
+    print("Wandb logger initialized.")
     trainer = Trainer(
         profiler=cfg.train.profiler,
         precision=cfg.train.precision,
@@ -152,7 +152,7 @@ def train_model(
         logger=wandb_logger,
         default_root_dir=model_dir,
     )
-
+    print("Trainer initialized.")
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
     print(f"Callback metrics: {trainer.callback_metrics}")
     val_loss = trainer.callback_metrics.get("val_loss")
