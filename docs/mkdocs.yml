@@ -16,3 +16,5 @@ nav:
   - Home: index.md
   - Setup: setup.md
   - Model training: run_local.md
+  - Continuous Integration: ci.md
+  - Docker: docker.md
