@@ -9,6 +9,7 @@ import pandas as pd
 
 from omegaconf import DictConfig
 from google.cloud import secretmanager, storage
+from google.api_core.exceptions import DeadlineExceeded
 
 import streamlit as st
 from google.cloud import run_v2
@@ -353,12 +354,17 @@ def add_to_database(cfg: DictConfig, predictions: list) -> None:
 
 
 @st.cache_resource
-def get_backend_url(service_name="backend", url="BACKEND_URL"):
-    """Get the URL of the backend service."""
+def get_backend_url(service_name="backend", url="BACKEND_URL", timeout=120):
+    """Get the URL of the backend service with a timeout and retry mechanism."""
     parent = "projects/mlops-fakenews/locations/europe-west3"
     client = run_v2.ServicesClient()
-    services = client.list_services(parent=parent)
-    for service in services:
-        if service.name.split("/")[-1] == service_name:
-            return service.uri
+
+    try:
+        services = client.list_services(parent=parent, timeout=timeout)
+        for service in services:
+            if service.name.split("/")[-1] == service_name:
+                return service.uri
+    except DeadlineExceeded:
+        print("Timeout exceeded while fetching the backend URL.")
+
     return os.getenv(url, None)
