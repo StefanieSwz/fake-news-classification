@@ -1,48 +1,33 @@
 import os
-import csv
 import torch
-from fakenews.config import BEST_MODEL, MODELS_DIR, PROCESSED_DATA_DIR
+from fakenews.config import BEST_MODEL, PROCESSED_DATA_DIR, MODELS_DIR
 from fakenews.model.model import BERTClass
 from fakenews.data.preprocessing import DataPreprocessor
 import hydra
+from transformers import BertTokenizer
+from transformers import AutoModel
 from sklearn.metrics import confusion_matrix, accuracy_score, f1_score
+from thop import profile
 
 
-def read_csv_to_set(file_path):
-    if os.path.exists(file_path):
-        with open(file_path, mode="r") as infile:
-            reader = csv.reader(infile)
-            return {rows[0] for rows in reader if rows}
-    else:
-        return set()
+class PlainBERTModel(torch.nn.Module):
+    def __init__(self, model_name, hidden_size, intermediate_size, output_size, dropout_rate):
+        super(PlainBERTModel, self).__init__()
+        self.bert = AutoModel.from_pretrained(model_name)
+        self.dropout = torch.nn.Dropout(dropout_rate)
+        self.relu = torch.nn.ReLU()
+        self.fc1 = torch.nn.Linear(hidden_size, intermediate_size)
+        self.fc2 = torch.nn.Linear(intermediate_size, output_size)
+        self.softmax = torch.nn.LogSoftmax(dim=1)
 
-
-def write_set_to_csv(keys_set, file_path):
-    with open(file_path, mode="w") as outfile:
-        writer = csv.writer(outfile)
-        for key in keys_set:
-            writer.writerow([key])
-
-
-def load_model_state(model, state_dict, missing_keys, unexpected_keys):
-    # current_missing_keys, current_unexpected_keys = set(), set()
-    try:
-        model.load_state_dict(state_dict)
-    except RuntimeError as e:
-        error_message = str(e)
-        if "Missing key(s) in state_dict:" in error_message:
-            missing_keys.update(
-                set(
-                    error_message.split("Missing key(s) in state_dict: ")[1]
-                    .split("Unexpected key(s)")[0]
-                    .strip()
-                    .split(", ")
-                )
-            )
-        if "Unexpected key(s) in state_dict:" in error_message:
-            unexpected_keys.update(set(error_message.split("Unexpected key(s) in state_dict: ")[1].strip().split(", ")))
-
-    return missing_keys, unexpected_keys
+    def forward(self, sent_id, mask):
+        cls_hs = self.bert(sent_id, attention_mask=mask)["pooler_output"]
+        x = self.fc1(cls_hs)
+        x = self.relu(x)
+        x = self.dropout(x)
+        x = self.fc2(x)
+        x = self.softmax(x)
+        return x
 
 
 def evaluate_model(model, test_dataloader, device):
@@ -59,7 +44,6 @@ def evaluate_model(model, test_dataloader, device):
             all_preds.extend(preds.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
 
-    # Calculate metrics
     accuracy = accuracy_score(all_labels, all_preds)
     f1 = f1_score(all_labels, all_preds, average="weighted")
     conf_matrix = confusion_matrix(all_labels, all_preds)
@@ -68,23 +52,61 @@ def evaluate_model(model, test_dataloader, device):
 
 
 def main():
-    # Load configuration
     with hydra.initialize(config_path="../../config", version_base="1.2"):
         cfg = hydra.compose(config_name="config")
-
-    # Read missing and unexpected keys from CSV files
-    missing_keys = read_csv_to_set("/Users/toby/fake-news-classification/fakenews/inference/missing_keys.csv")
-    unexpected_keys = read_csv_to_set("/Users/toby/fake-news-classification/fakenews/inference/unexpected_keys.csv")
 
     # Load the model checkpoint
     model_checkpoint_path = os.path.join(BEST_MODEL, "model" + ".ckpt")
     pl_model = BERTClass.load_from_checkpoint(model_checkpoint_path, cfg=cfg)
 
-    # Move model to CPU
-    device = torch.device("cpu")
-    pl_model.to(device)
+    # Create a plain PyTorch model
+    plain_model = PlainBERTModel(
+        model_name=cfg.model.name,
+        hidden_size=cfg.model.hidden_size,
+        intermediate_size=cfg.model.intermediate_size,
+        output_size=cfg.model.output_size,
+        dropout_rate=cfg.model.dropout_rate,
+    )
 
-    # Load the preprocessed test data
+    # Load the state dict from the lightning model into the plain model
+    plain_model.load_state_dict(pl_model.state_dict())
+    plain_model.to("cpu")
+    device = torch.device("cpu")
+
+    # Calculate FLOPs
+    tokenizer = BertTokenizer.from_pretrained(cfg.model.name)
+    dummy_input = tokenizer(
+        "This is a dummy input", return_tensors="pt", max_length=15, padding="max_length", truncation=True
+    )
+    input_ids = dummy_input["input_ids"].to(device)
+    attention_mask = dummy_input["attention_mask"].to(device)
+
+    # Calculate FLOPs for the original model
+    flops, params = profile(plain_model, inputs=(input_ids, attention_mask))
+    print(f"Original Model - FLOPs: {flops}, Params: {params}")
+
+    # Quantization
+    torch.backends.quantized.engine = "qnnpack"
+
+    quantized_model = torch.quantization.quantize_dynamic(plain_model, {torch.nn.Linear}, dtype=torch.qint8)
+
+    print("Quantized model:", quantized_model)
+
+    quantized_model_path = os.path.join(MODELS_DIR, "quantized_model.pth")
+    torch.save(quantized_model.state_dict(), quantized_model_path)
+    print(f"Quantized model saved to {quantized_model_path}")
+
+    # Load the quantized model
+    state_dict = torch.load(quantized_model_path)
+    quantized_model.load_state_dict(state_dict)
+
+    # Calculate FLOPs for the quantized model
+    flops, params = profile(quantized_model, inputs=(input_ids, attention_mask))
+    print(f"Quantized Model - FLOPs: {flops}, Params: {params}")
+
+    # Evaluate the quantized model
+    quantized_model.to(device)
+
     preprocessor = DataPreprocessor(data_dir=PROCESSED_DATA_DIR, max_length=cfg.preprocess.max_length)
     _, _, test_dataloader = preprocessor.process(
         batch_size=cfg.train.batch_size,
@@ -94,55 +116,12 @@ def main():
         processed_data_dir=PROCESSED_DATA_DIR,
     )
 
-    # Evaluate original model
-    original_device = torch.device(
-        "mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu"
-    )
-    original_accuracy, original_f1, original_conf_matrix = evaluate_model(pl_model, test_dataloader, original_device)
-    print(f"Original Model - Accuracy: {original_accuracy}")
-    print(f"Original Model - F1 Score: {original_f1}")
-    print(f"Original Model - Confusion Matrix:\n{original_conf_matrix}")
-
-    # Set the quantization backend
-    torch.backends.quantized.engine = "qnnpack"
-
-    # Perform dynamic quantization on the PyTorch model
-    quantized_model = torch.quantization.quantize_dynamic(pl_model, {torch.nn.Linear}, dtype=torch.qint8)
-
-    print("Quantized model:", quantized_model)
-
-    # Save the quantized model state dict
-    quantized_model_path = os.path.join(MODELS_DIR, "quantized_model.pth")
-    torch.save(quantized_model.state_dict(), quantized_model_path)
-    print(f"Quantized model saved to {quantized_model_path}")
-
-    # Load the quantized model state dict
-    state_dict = torch.load(quantized_model_path)
-
-    # Initialize the model and load the state dict with error handling
-    model = BERTClass(cfg)
-    missing_keys, unexpected_keys = load_model_state(model, state_dict, missing_keys, unexpected_keys)
-
-    # Save missing and unexpected keys to CSV files
-    write_set_to_csv(missing_keys, "/Users/toby/fake-news-classification/fakenews/inference/missing_keys.csv")
-    write_set_to_csv(unexpected_keys, "/Users/toby/fake-news-classification/fakenews/inference/unexpected_keys.csv")
-
-    # Reload the model state dict after saving the keys
-    state_dict = {k: v for k, v in state_dict.items() if k not in unexpected_keys}
-    model_state_dict = model.state_dict()
-    for k in missing_keys:
-        if k in state_dict:
-            model_state_dict[k] = state_dict[k]
-    model.load_state_dict(model_state_dict)
-
-    # Evaluate quantized model
-    quantized_accuracy, quantized_f1, quantized_conf_matrix = evaluate_model(model, test_dataloader, original_device)
+    quantized_accuracy, quantized_f1, quantized_conf_matrix = evaluate_model(quantized_model, test_dataloader, device)
     print(f"Quantized Model - Accuracy: {quantized_accuracy}")
     print(f"Quantized Model - F1 Score: {quantized_f1}")
     print(f"Quantized Model - Confusion Matrix:\n{quantized_conf_matrix}")
 
 
-# Ensure the main function is called correctly
 if __name__ == "__main__":
     import multiprocessing
 
