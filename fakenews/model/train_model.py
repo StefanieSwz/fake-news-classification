@@ -128,7 +128,7 @@ def train_model(
     callbacks.append(progress_bar)
 
     if cfg.train.pruning:
-        pruning_callback = ModelPruning("l1_unstructured", amount=0.3)
+        pruning_callback = ModelPruning("l1_unstructured", amount=cfg.train.pruning_rate)
         callbacks.append(pruning_callback)
 
     accelerator = "gpu" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
@@ -252,6 +252,7 @@ def run_sweep(cfg: DictConfig, processed_data_dir, models_dir, wandb_project, wa
                 overrides=[
                     f"train.lr={sweep_config['train.lr']}",
                     f"train.batch_size={sweep_config['train.batch_size']}",
+                    f"train.pruning_rate={sweep_config['train.pruning_rate']}",
                     f"model.dropout_rate={sweep_config['model.dropout_rate']}",
                 ],
             )

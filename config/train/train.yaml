@@ -1,6 +1,6 @@
 lr: 1e-5
 batch_size: 32
-epochs: 1
+epochs: 5
 patience: 3
 random_state: 2018
 test_size: 0.3
@@ -15,6 +15,7 @@ profiler: "simple"
 num_runs: 5
 sweep: False
 pruning: False
+pruning_rate : 0.3
 save_model: False
 log_model: True
 local_wandb: False
