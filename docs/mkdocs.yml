@@ -8,7 +8,11 @@ theme:
   features:
   - content.code.copy
   - content.code.annotate
+markdown_extensions:
+  - attr_list
+  - md_in_html
 
 nav:
   - Home: index.md
-  - API: my_api.md
+  - Setup: setup.md
+  - Model training: run_local.md
