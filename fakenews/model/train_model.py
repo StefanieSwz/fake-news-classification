@@ -261,8 +261,8 @@ def run_sweep(cfg: DictConfig, processed_data_dir, models_dir, wandb_project, wa
         print(f"Training Config: {OmegaConf.to_container(cfg, resolve=True)}")
 
         # Create model directory
-        model_dir = create_model_directory(cfg, models_dir)
-
+        # model_dir = create_model_directory(cfg, models_dir)
+        model_dir = "gs://model-checkpoints-mlops/path/to/save/model.ckpt"
         # Preprocess data
         train_dataloader, val_dataloader, test_dataloader = preprocess_data(cfg, processed_data_dir)
 
@@ -318,8 +318,8 @@ def train_fixed(cfg: DictConfig, processed_data_dir, models_dir, wandb_api_key, 
     print(f"Training Config: {OmegaConf.to_container(cfg, resolve=True)}")
 
     # Create model directory
-    model_dir = create_model_directory(cfg, models_dir)
-
+    # model_dir = create_model_directory(cfg, models_dir)
+    model_dir = "gs://model-checkpoints-mlops/checkpoints/model.ckpt"
     # Preprocess data
     train_dataloader, val_dataloader, test_dataloader = preprocess_data(cfg, processed_data_dir)
 
