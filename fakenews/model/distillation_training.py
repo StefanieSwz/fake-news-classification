@@ -9,15 +9,13 @@ from fakenews.model.distillation_model import DistillationTrainer, StudentDistil
 from fakenews.config import (
     DISTILLED_MODEL,
     MODEL_REGISTRY,
+    WANDB_API_KEY,
+    WANDB_PROJECT,
+    WANDB_ENTITY,
+    PROCESSED_DATA_DIR,
     upload_to_gcs,
-    access_secret_version,
-    setup_data_directories,
 )
 from fakenews.model.train_model import preprocess_data, train_model, eval_model
-
-WANDB_API_KEY = access_secret_version("WANDB_API_KEY")
-WANDB_PROJECT = access_secret_version("WANDB_PROJECT")
-WANDB_ENTITY = access_secret_version("WANDB_ENTITY")
 
 
 def get_hyperparameters_from_wandb(artifact_path):
@@ -124,13 +122,16 @@ def train_student(cfg: DictConfig, processed_data_dir, wandb_project, wandb_enti
         cfg, teacher_model, student_model, train_dataloader, val_dataloader, model_dir, wandb_project, wandb_entity
     )
 
+    # Save the model checkpoint with a fixed name
+    fixed_checkpoint_path = os.path.join(model_dir, "model.ckpt")
+    shutil.copy(best_model_path, fixed_checkpoint_path)
+
     # Evaluate the student model
     eval_model(cfg, model_dir, test_dataloader, wandb_project, wandb_entity, model_class=StudentDistilBERTClass)
 
     # Upload the best model to GCS
-    upload_to_gcs(
-        best_model_path, cfg.cloud.bucket_name_model, os.path.join(cfg.cloud.model_dir, cfg.cloud.distilled_file)
-    )
+    with open(fixed_checkpoint_path, "rb") as f:
+        upload_to_gcs(f, cfg.cloud.bucket_name_model, os.path.join(cfg.cloud.model_dir, cfg.cloud.distilled_file))
 
     if not cfg.train.save_model:
         shutil.rmtree(model_dir)
@@ -144,8 +145,6 @@ def main(cfg: DictConfig):
     Args:
         cfg (DictConfig): Configuration composed by Hydra.
     """
-
-    _, PROCESSED_DATA_DIR, _, _ = setup_data_directories(cfg=cfg)
     train_student(cfg, PROCESSED_DATA_DIR, WANDB_PROJECT, WANDB_ENTITY)
 
 
