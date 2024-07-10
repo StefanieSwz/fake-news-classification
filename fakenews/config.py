@@ -42,6 +42,7 @@ MODELS_DIR = PROJ_ROOT / "models"
 BEST_MODEL = MODELS_DIR / "best_model"
 DEPLOY_MODEL = MODELS_DIR / "deploy"
 QUANTIZED_MODEL = MODELS_DIR / "quantized_model"
+DISTILLED_MODEL = MODELS_DIR / "distillation_model"
 
 REPORTS_DIR = PROJ_ROOT / "reports"
 FIGURES_DIR = REPORTS_DIR / "figures"

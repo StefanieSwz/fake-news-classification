@@ -165,7 +165,7 @@ def train_model(
     return best_model_path, val_loss.item()
 
 
-def eval_model(cfg: DictConfig, model_dir: str, test_dataloader, wandb_project, wandb_entity):
+def eval_model(cfg: DictConfig, model_dir: str, test_dataloader, wandb_project, wandb_entity, model_class=BERTClass):
     """
     Evaluate the model.
 
@@ -183,7 +183,7 @@ def eval_model(cfg: DictConfig, model_dir: str, test_dataloader, wandb_project, 
         float: The test loss of the model.
     """
     model_checkpoint_path = os.path.join(model_dir, cfg.train.filename + ".ckpt")
-    model = BERTClass.load_from_checkpoint(model_checkpoint_path, cfg=cfg)
+    model = model_class.load_from_checkpoint(model_checkpoint_path, cfg=cfg)
     print(f"Loaded model from checkpoint: {model_checkpoint_path}")
 
     wandb_logger = WandbLogger(
