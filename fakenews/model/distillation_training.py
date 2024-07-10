@@ -9,13 +9,15 @@ from fakenews.model.distillation_model import DistillationTrainer, StudentDistil
 from fakenews.config import (
     DISTILLED_MODEL,
     MODEL_REGISTRY,
-    WANDB_API_KEY,
-    WANDB_PROJECT,
-    WANDB_ENTITY,
-    PROCESSED_DATA_DIR,
     upload_to_gcs,
+    access_secret_version,
+    setup_data_directories,
 )
 from fakenews.model.train_model import preprocess_data, train_model, eval_model
+
+WANDB_API_KEY = access_secret_version("WANDB_API_KEY")
+WANDB_PROJECT = access_secret_version("WANDB_PROJECT")
+WANDB_ENTITY = access_secret_version("WANDB_ENTITY")
 
 
 def get_hyperparameters_from_wandb(artifact_path):
@@ -142,6 +144,8 @@ def main(cfg: DictConfig):
     Args:
         cfg (DictConfig): Configuration composed by Hydra.
     """
+
+    _, PROCESSED_DATA_DIR, _, _ = setup_data_directories(cfg=cfg)
     train_student(cfg, PROCESSED_DATA_DIR, WANDB_PROJECT, WANDB_ENTITY)
 
 
