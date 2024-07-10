@@ -13,7 +13,7 @@ from fakenews.config import (
     access_secret_version,
     setup_data_directories,
 )
-from fakenews.model.train_model import preprocess_data, train_model, eval_model
+from fakenews.model.train_model import preprocess_data, train_model
 
 WANDB_API_KEY = access_secret_version("WANDB_API_KEY")
 WANDB_PROJECT = access_secret_version("WANDB_PROJECT")
@@ -129,7 +129,7 @@ def train_student(cfg: DictConfig, processed_data_dir, wandb_project, wandb_enti
     shutil.copy(best_model_path, fixed_checkpoint_path)
 
     # Evaluate the student model
-    eval_model(cfg, model_dir, test_dataloader, wandb_project, wandb_entity, model_class=StudentDistilBERTClass)
+    # eval_model(cfg, model_dir, test_dataloader, wandb_project, wandb_entity, model_class=StudentDistilBERTClass)
 
     # Upload the best model to GCS
     with open(fixed_checkpoint_path, "rb") as f:
