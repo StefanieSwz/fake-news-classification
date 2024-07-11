@@ -28,7 +28,7 @@ The dataset includes:
 1. **Serial Number**: A unique identifier for each entry.
 2. **Title**: The headline of the news article.
 3. **Text**: The content of the news article.
-4. **Label**: A binary label indicating whether the news is fake (0) or real (1).
+4. **Label**: A binary label indicating whether the news is real (0) or fake (1).
 
 ### Models
 Suitable models are mainly transformer-based:
@@ -41,50 +41,57 @@ Suitable models are mainly transformer-based:
 
 We decided to focus only on BERT, since the project is meant to showcast the whole deployment cycle of a deep learning model and supporting different model classes would increase the amount of backend code tremendously.
 
+Model distillation is conducted to improve inference speed using smaller pretrained architectures like DistilBert and Albert V2 and smaller finetuning layers. The notebook distillation.ipynb provides an overview over these architectures.
+However, only BERT is currently deployed in the Cloud Run. Although, deploying a more efficient and well-performing DistilBert model would be straightforward in our setup.
+
+
 ## Project Organization
 
 ```
-├── LICENSE            <- Open-source license if one is chosen
-├── Makefile           <- Makefile with convenience commands like `make data` or `make train`
-├── README.md          <- The top-level README for developers using this project.
-├── config             <- Config folder for hydra usage.
+├── LICENSE                <- Open-source license if one is chosen
+├── Makefile               <- Makefile with convenience commands like `make data` or `make train`
+├── README.md              <- The top-level README for developers using this project.
+├── config                 <- Config folder for hydra usage.
 │   ├── cloud
+│   ├── distillation
 │   ├── model
 │   ├── predict
 │   ├── preprocess
 │   └── train
 │
 ├── data
-│   ├── predict        <- Sampled data set to test predicting capability.
-│   ├── processed      <- The final, canonical data sets for modeling.
-│   └── raw            <- The original, immutable data dump.
+│   ├── predict            <- Sampled data set to test predicting capability.
+│   ├── processed          <- The final, canonical data sets for modeling.
+│   └── raw                <- The original, immutable data dump.
 │  
-├── data.dvc           <- DVC folder to pull complete data folder from Google Cloud Bucket.
-├── docker             <- Containing all docker files.
-├── docs               <- Mkdocs project; see mkdocs.org for details.
+├── data.dvc               <- DVC folder to pull complete data folder from Google Cloud Bucket.
+├── docker                 <- Containing all docker files.
+├── docs                   <- Mkdocs project; see mkdocs.org for details.
 │
-├── models             <- Trained and serialized models, model predictions, or model summaries.
+├── models                 <- Trained and serialized models, model predictions, or model summaries.
 │
-├── notebooks          <- Notebooks for visualization purposes.
+├── notebooks              <- Notebooks for visualization purposes.
 │   ├── descriptives.ipynb
-│   └── predictions.ipynb
+│   ├── distillation.ipynb
+│   ├── predictions.ipynb
+│   └── quantization.ipynb
 │
-├── pyproject.toml     <- Project configuration file with package metadata for fakenews
-│                         and configuration for tools like black
+├── pyproject.toml         <- Project configuration file with package metadata for fakenews
+│                             and configuration for tools like black
 │
-├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-│   ├── figures        <- Generated graphics and figures to be used in reporting
+├── reports                <- Generated analysis as HTML, PDF, LaTeX, etc.
+│   ├── figures            <- Generated graphics and figures to be used in reporting
 │   ├── monitoring
 │   │   ├── data_drift_report.html
 │   │   ├── data_drift_tests.html
 │   │   └── text_drift_metrics.html
-│   ├── README.md      <- Final Hand-in source file for report for MLOps
+│   ├── README.md          <- Final Hand-in source file for report for MLOps
 │   └── report.py
 │
-├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-│                         generated with `pip freeze > requirements.txt`
+├── requirements.txt       <- The requirements file for reproducing the analysis environment, e.g.
+│                             generated with `pip freeze > requirements.txt`
 │
-├── tests              <- Test folder, to be executed with `pytest tests` from root directory
+├── tests                  <- Test folder, to be executed with `pytest tests` from root directory
 │   ├── integrationtests
 │   │   ├── test_inference.py
 │   │   └── test_monitoring.py
@@ -95,31 +102,32 @@ We decided to focus only on BERT, since the project is meant to showcast the who
 │       ├── test_model.py
 │       └── test_train.py
 │
-└── fakenews                    <- Source code for use in this project.
+└── fakenews                <- Source code for use in this project.
     ├── app
     │   ├── frontend.py
     │   ├── inference_app.py
     │   └── monitoring_app.py
     │
     ├── config.py
-    ├── data                    <- Scripts to download or generate data
+    ├── data                <- Scripts to download or generate data
     │   ├── data_generator.py
     │   ├── make_dataset.py
     │   └── preprocessing.py
     │
-    ├── model                   <- Scripts to train models and usage
-    │   ├── bert_handler.py
-    │   ├── model.py
+    ├── inference           <- Scripts for model inference
+    │   ├── distillation.py
     │   ├── predict.py
+    │   └── quantization.py
+    ├── model               <- Scripts to train models and usage
+    │   ├── distillation_model.py
+    │   ├── distillation_training.py
+    │   ├── model.py
     │   ├── train_model.py
-    │   ├── transform_model.py
     │   └── wandb_registry.py
     │
-    ├── monitoring
-    │   └── data_drift.py
-    │
-    └── visualizations          <- Scripts to create exploratory and results oriented visualizations
-        └── plots.py
+    └── monitoring          <- Scripts to create exploratory and results oriented visualizations
+        └── data_drift.py
+
 
 ```
 
