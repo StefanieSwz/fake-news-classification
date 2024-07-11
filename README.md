@@ -16,9 +16,9 @@ The Fake News Classifier project aims to equip students in the ML Operations (ML
 
 ### Framework and Integration
 
-For the classification task we use PyTorch in combination with Hugging Face's Transformers library. PyTorch is a popular deep learning framework known for its flexibility and ease of use. The Transformers library provides pre-trained models and APIs for implementing transformer architectures like BERT (Bidirectional Encoder Representations from Transformers) and SBERT (Sentence-BERT), which are effective for Natural Language Processing (NLP) tasks.
+For the classification task, we use PyTorch Lightning in combination with Hugging Face's Transformers library. PyTorch is a popular deep learning framework known for its flexibility and ease of use. The Transformers library provides pre-trained models and APIs for implementing transformer architectures like BERT (Bidirectional Encoder Representations from Transformers) and SBERT (Sentence-BERT), which are effective for Natural Language Processing (NLP) tasks.
 
-To integrate these frameworks, a conda environment is used to manage dependencies and ensure compatibility. Necessary packages like PyTorch, Transformers, and others are installed using pip. The project structure includes scripts for data preprocessing, model training, and evaluation.
+To integrate these frameworks, a conda environment is used to manage dependencies and ensure compatibility. Necessary packages like PyTorch, PyTorch Lightning, Transformers, and others are installed using pip. The project structure includes scripts for data preprocessing, model training, distillation, quantization, monitoring and evaluation. Moreover, FastAPI apps and a streamlit frontend are provided. The corresponding docker and cloudbuild files enable deployment in Google Cloud Services. Also, unit, integration and performance tests can be found in the test directory. Experiments are tacked using hydra configurations and Weights & Biases. The report folder contains more detailed information on the project. A general file overview can be found at the end of this file.
 
 ### Data
 
@@ -41,7 +41,7 @@ Suitable models are mainly transformer-based:
 
 We decided to focus only on BERT, since the project is meant to showcast the whole deployment cycle of a deep learning model and supporting different model classes would increase the amount of backend code tremendously.
 
-Model distillation is conducted to improve inference speed using smaller pretrained architectures like DistilBert and Albert V2 and smaller finetuning layers. The notebook distillation.ipynb provides an overview over these architectures.
+Nevertheless, model distillation is conducted to improve inference speed in context of the "scalable inference" chapter, using smaller pretrained architectures like DistilBert and Albert V2 and smaller finetuning layers. The notebook distillation.ipynb provides an overview over these architectures.
 However, only BERT is currently deployed in the Cloud Run. Although, deploying a more efficient and well-performing DistilBert model would be straightforward in our setup.
 
 
