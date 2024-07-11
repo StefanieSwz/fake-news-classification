@@ -230,9 +230,13 @@ Additionally, we chose not to use setup.cfg because flake8 linting is handled by
 ---
 
 For code formatting we are using ruff. You can automatically format your code pep8 conform with:
+
 `ruff format . # formats all files in directory, respectively`
+
 `pre-commit run --all-files # as ruff linting and ruff formatter are used as precommit hooks`
-Also every function is required a docstring in our repo.
+
+Also every function requires a docstring in our repo.
+
 This matters because of readability and mitigating having minor changes (as new lines at end of the script) during a commit. Having google doc strings in every function allows for facilitated code comprehension and is therefore a best practice.
 
 ---
@@ -256,7 +260,7 @@ This matters because of readability and mitigating having minor changes (as new 
 
 ---
 
-In total we have implemented 39 tests. We are testing the data part of the project, especially with make_dataset.py and preprocessing.py, and the model related part, which is aiming at the model.py and train_model.py. The other scripts of the module are mainly consisting of the one function, which is highly entangeled with other services like wandb. The testing is more complex here, since this functionality has to be mocked and can't be tested. Additionally, we wrote two test files for integration test of the inference and monitoring app.
+In total we have implemented 39 tests. We are testing the data part of the project, especially with `make_dataset.py` and `preprocessing.py`, and the model related part, which is aiming at the `model.py` and `train_model.py`. The other scripts of the module are mainly consisting of the one function, which is highly entangeled with other services like wandb. The testing is more complex here, since this functionality has to be mocked and can't be tested. Additionally, we wrote two test files for integration test of the inference and monitoring app. We also allow load testing for inference backend using locust.
 
 ---
 
@@ -275,7 +279,7 @@ In total we have implemented 39 tests. We are testing the data part of the proje
 
 ---
 
-The total code coverage of our code is 75%, which includes fakenews\config.py, fakenews\data\make_dataset.py, fakenews\data\preprocessing.py, fakenews\model\model.py, fakenews\model\train_model.py, and all related init and test files. While we strive for higher coverage, achieving 100% coverage is challenging due to the complexity and interactions of advanced functions, many of which are wrapped within other functions, making them difficult to test in isolation.
+The total code coverage of our code is 75%, which includes `fakenews\config.py`, `fakenews\data\make_dataset.py`, `fakenews\data\preprocessing.py`, `fakenews\model\model.py`, `fakenews\model\train_model.py`, and all related init and test files. While we strive for higher coverage, achieving 100% coverage is challenging due to the complexity and interactions of advanced functions, many of which are wrapped within other functions, making them difficult to test in isolation.
 
 Even if we were to reach 100% code coverage, it would not necessarily guarantee that the code is error-free. Code coverage metrics indicate how much of the code is executed during testing, but they do not guarantee the absence of logical errors, edge cases, or unforeseen interactions. It is crucial to complement high code coverage with comprehensive testing strategies, including integration tests, system tests, and manual testing, to ensure the robustness and reliability of the software.
 
@@ -349,7 +353,7 @@ For code formatting and linting, we use Ruff. This workflow runs on every push a
 Our unit tests are divided into various components, with a specific focus on the data part. We use a DVC workflow to test the current version of the data associated with the PR. This setup used to require storing Google Drive credentials in GitHub secrets, allowing us to pull the correct data version and run the tests accordingly. Currently, the dvc is connected to a Google Cloud Bucket.
 
 3. Docker Image Build and Deployment
-We have a workflow that triggers on PRs to the main branch. This workflow builds a Docker image for training on Google Cloud Build and saves it at the Artifact Registry.
+We have a workflow that triggers on PRs to the main branch. This workflow builds a Docker image for training on Google Cloud Build and saves it at the Artifact Registry, as well as a docker image for backend, frontend and moitoring, including deployment.
 
 4. Example Workflow
 An example of a triggered workflow can be seen in our "Run test" workflow. This workflow ensures that all rests are con successfully before merging a PR.
@@ -395,6 +399,8 @@ Our script is fully automated with make commands, and all configurations are man
 
 docker build -f docker/trainer_local.dockerfile . -t trainer:latest
 
+% if you are using windows command line
+
 docker run --name <container_name> -v %cd%/models:/models/ trainer:latest train.local_data=True train.local_wandb=True <model.dropout_rate=0.3 train.batch_size=8>
 
 ```
@@ -418,15 +424,15 @@ docker run --name <container_name> -v %cd%/models:/models/ trainer:latest train.
 
 We made use of config files to ensure the reproducibility of our experiments. Whenever an experiment is run, the following steps occur:
 
-1. Config Management: Configurations can be changed via command line inputs, and the used configs are automatically stored in the outputs/ folder. Each experiment's folder is named according to the date and time it was run and includes the configs, Hydra settings, and override YAML files.
+1. Config Management: Configurations can be changed via command line inputs, and the used configs are automatically stored in the `outputs/` folder. Each experiment's folder is named according to the date and time it was run and includes the configs, Hydra settings, and override YAML files.
 
-2. Logging and Tracking: We save all logged parameters, especially for the best run, using Weights & Biases (wandb). This includes detailed records of the hyperparameters, metrics, and results.
+2. Logging and Tracking: We save all logged parameters using Weights & Biases (wandb). This includes detailed records of the hyperparameters, metrics, and results.
 
 3. Docker for Reproducibility: Docker containers are used to ensure that the environment remains consistent across different runs. The Docker files are version-controlled and stored, making it easy to reproduce the exact environment in which the experiments were conducted.
 
 To reproduce an experiment, one would simply need to:
 
-- Retrieve the relevant config files from the outputs/ folder or from wandb logs.
+- Retrieve the relevant config files from the `outputs/` folder or from wandb logs.
 - If preferred, use the Docker container to ensure the same environment.
 - Run the experiment using the stored configurations.
 
@@ -449,14 +455,15 @@ To reproduce an experiment, one would simply need to:
 
 ---
 
-1. The first image provides an overview of the total number of runs that were performed. However, many of those runs were not completed or did not necessarily include model training, for example, when downloading an artifact from the model registry.
+- The first image provides an overview of the total number of runs that were performed. However, many of those runs were not completed or did not necessarily include model training, for example, when downloading an artifact from the model registry.
 
-<img src="figures/wandb_runs.png" alt="my_figure" width="1500">
+<img src="figures/wandb_runs.png" alt="my_figure" width="1000">
 
 Failed training runs can be credited to adjustments in the code during development or manually stopped runs.
 In total 12 metrics are considered for an entire training run:
 
-```
+```bash
+
   - dropout rate
 
   - learning rate
@@ -483,14 +490,14 @@ In total 12 metrics are considered for an entire training run:
 
 ```
 
-2. The second image provides an overview of the hyperparameter optimization sweep using random search that was performed to obtain the best model that is later staged as such in the model registry.
+- The second image provides an overview of the hyperparameter optimization sweep using random search that was performed to obtain the best model that is later staged as such in the model registry.
 One can observe that the learning rate has the highest importance with respect to the validation loss, which was selected as a tuning criterion to prevent test set bias. Especially lower learning rates achieve lower validation loss at the end of the training periods.
 
-<img src="figures/wandb_sweep.png" alt="my_figure" width="1500">
+<img src="figures/wandb_sweep.png" alt="my_figure" width="1000">
 
-3. The third image is an overview of the model registry. Only the five models created by the hyperparameter optimization sweep were added to the model registry. However, artifacts can be added automatically by using a make command.
+- The third image is an overview of the model registry. Only the five models created by the hyperparameter optimization sweep were added to the model registry. However, artifacts can be added automatically by using a make command.
 
-<img src="figures/wandb_registry.png" alt="my_figure" width="1500">
+<img src="figures/wandb_registry.png" alt="my_figure" width="1000">
 
 Moreover, the best model in the registry is then flagged based on the lowest validation loss at the end of the training period, denoted by VAL_LOSS in the picture.
 
@@ -525,11 +532,11 @@ docker run --name <container_name> -v %cd%/models:/models/ trainer:latest train.
 
 This setup mounts the models folder to save the weights locally, allowing us to persist the trained models outside of the container.
 
-For running the training via Google Cloud Run, we have seperate docker files and we do not mount the folder, as these platforms handle storage differently.
+For running the training via Google VERTEX AI, we have seperate docker files and we do not mount the folder, as these platforms handle storage differently.
 
 By using Docker, we ensured that our experiments were reproducible and could be easily shared with team members or deployed to different environments without compatibility issues.
 
-Link to the trainer Docker file (for cloud usage): https://github.com/StefanieSwz/fake-news-classification/blob/main/trainer.dockerfile
+Link to the trainer Docker file (for cloud usage): https://github.com/StefanieSwz/fake-news-classification/blob/main/docker/trainer.dockerfile
 
 ---
 
@@ -572,11 +579,17 @@ We also performed basic profiling of our main code to ensure there were no major
 ---
 
 We used the following services:
+
 - **Buckets** in the Cloud Storage with object versioning to store the data and best model weights.
+
 - **Artifact registry** where the docker images are stored and we set up a **Trigger** to use continuous integration, i.e. the Trigger automatically starts the building process of an image each time we push code to the repository.
+
 - **Vertex AI** to train the model on CPUs. With Vertex AI, we can create custom jobs and use the docker containers that have everything to run our code. Although it is also possible to train on a GPU using Vertex AI, we did not get an approval to increase quota.
+
 - **Compute Engine** to train the model on both, CPUs and GPUs. To train with a GPU, we used a Nvidia T4 GPU with a public deep learning image that has Python 3.10 and CUDA 12.1 preinstalled. The training on a CPU uses an `e2-standard-4` as machine type.
-- **Cloud Run** to deploy the model with a frontend and backend application.
+
+- **Cloud Run** to deploy the model with a frontend and backend application and the monitoring FastAPI app.
+
 - **Secret Manager** to store Weights and Biases API key to make code runnable in the Cloud.
 
 ---
@@ -598,9 +611,9 @@ We used the following services:
 
 We used the Google Cloud Compute Engine to run our training experiments, utilizing both CPU and GPU virtual machine (VM) instances tailored to our specific needs.
 
-For GPU-based training, we selected an image with Nvidia drivers and PyTorch (c0-deeplearning-common-cu121-v20240627-debian-11-py310). We created a VM with n1-standard-8 machine type and 100GB of storage. Upon starting the VM, we were prompted to install the Nvidia driver by typing y when asked: install nvidia driver?[y/n]. This setup provided us with pre-installed Git, nvidia-smi, and conda, ensuring a smooth environment for our deep learning tasks.
+For GPU-based training, we selected an image with Nvidia drivers and PyTorch (`c0-deeplearning-common-cu121-v20240627-debian-11-py310`). We created a VM with `n1-standard-8` machine type and 100GB of storage. Upon starting the VM, we were prompted to install the Nvidia driver by typing y when asked: `install nvidia driver?[y/n]`. This setup provided us with pre-installed Git, nvidia-smi, and conda, ensuring a smooth environment for our deep learning tasks.
 
-For CPU-based training, we utilized the e2-standard-4 machine type. This instance type offered a balance of performance and cost, suitable for less computationally intensive tasks. All necessary framesworks had to be installed from scretch via terminal, as no specific compute image was selected.
+For CPU-based training, we utilized the `e2-standard-4` machine type. This instance type offered a balance of performance and cost, suitable for less computationally intensive tasks. All necessary frameworks had to be installed from scratch via terminal, as no specific compute image was selected.
 
  ---
 
@@ -615,7 +628,7 @@ For CPU-based training, we utilized the e2-standard-4 machine type. This instanc
 
 Buckets for storing data and model weights:
 
-<img src="figures/buckets-fakenews.png" alt="my_figure" width="1500">
+<img src="figures/buckets-fakenews.png" alt="my_figure" width="1000">
 
 ---
 
@@ -630,7 +643,7 @@ Buckets for storing data and model weights:
 
 Images of training, predicting as well as deployment of backend and frontend:
 
-<img src="figures/artifacts-fakenews.png" alt="my_figure" width="1500">
+<img src="figures/artifacts-fakenews.png" alt="my_figure" width="1000">
 
 ---
 
@@ -645,7 +658,7 @@ Images of training, predicting as well as deployment of backend and frontend:
 
 Build history with images triggered from local and by pushing into the repository:
 
-<img src="figures/builds-fakenews.png" alt="my_figure" width="1500">
+<img src="figures/builds-fakenews.png" alt="my_figure" width="1000">
 
 ---
 
@@ -663,7 +676,43 @@ Build history with images triggered from local and by pushing into the repositor
 >
 > Answer:
 
---- For deployment we wrapped our model into application using FastAPI. We first deployed the model locally, which worked. Afterwards we deployed it in the cloud, using Cloud Run. To invoke the service an user would call ---
+---
+
+For deployment we wrapped our model into application using FastAPI. We first deployed the model locally. Afterwards we deployed it in the cloud, using Cloud Run.
+
+Local deployment using FastAPI as backend (and for monitoring) and streamlit as frontend:
+      - backend and monitoring:
+bash
+      uvicorn fakenews.app.inference_app:app --reload
+      uvicorn fakenews.app.monitoring_app:app --reload
+
+      - frontend:
+bash
+      streamlit run fakenews/app/frontend.py
+
+curl commands can also be used for requesting the API. However, one may deem the frontend as more convenient.
+
+An example for requesting the inference app deployed locally on port 8000:
+bash
+      curl -X POST "http://localhost:8000/predict_single/" \
+     -H "Content-Type: application/json" \
+     -d '{"title": "Example news title"}'
+
+Cloud deployment using Cloud Run and Cloud Build:
+bash
+      gcloud builds submit --config=config/cloudbuild_<name>.yaml
+
+This will automatically build the image, push it to the cloud and deploy the service, including frontend, backend and monitoring.
+
+These are the URLS to open the deployed services:
+      - frontend: https://frontend-awan6kp5bq-ey.a.run.app
+      - backend: https://backend-awan6kp5bq-ey.a.run.app
+      - monitoring: https://monitoring-awan6kp5bq-ey.a.run.app
+
+Curl requests can be sent analogously.
+
+
+---
 
 ### Question 23
 
@@ -680,12 +729,12 @@ Build history with images triggered from local and by pushing into the repositor
 
 ---
 
-We implemented monitoring for data drift of our textual data (also in form of their embedding values) and label distribution coming from a reference database and a monitoring database originating from our inference app. The report can be accessed via a FastAPI application that creates reports and also download them.
+We implemented monitoring for data drift of our textual data (also in form of their embedding values) and label distribution coming from a reference database and a monitoring database originating from our inference app. The report can be accessed via a FastAPI application that creates reports and also downloads them.
 
-For your inference app we collect a broad set of metrics via the prometheus package. Most of the metrics are coming from a default setting, and one metric (number of made predictions) is manually implemented via incremention steps. If wished, the metrics can be accessed through a `metrics/` endpoint in out inference FastAPI app.
+For the inference app, we collect a broad set of metrics via the prometheus package. Most of the metrics are coming from a default setting, and one metric (number of made predictions) is manually implemented via incremention steps. If wished, the metrics can be accessed through a `metrics/` endpoint in our inference FastAPI app.
 
-On Google Cloud Platform, we tested the usability of the Monitoring Dashboard and we have a widget for the CPU utilization and GPU RAM usage.
-We also created an alert system for a heavy request load to our google cloud buckets, which was triggered one for now.
+On Google Cloud Platform, we tested the usability of the Monitoring Dashboard and created a widget for the CPU utilization and GPU RAM usage.
+We also created an alert system for a heavy request load to our Google Cloud Buckets, which was triggered once for now.
 
 We added SLO to the Cloud Run "backend" to check the latency of the response, requiring that 80% of reponses must be completed in max 5 seconds. We are also able to stress test our API using locust, spawning multiple users and requests at the same time.
 
@@ -703,7 +752,11 @@ We added SLO to the Cloud Run "backend" to check the latency of the response, re
 >
 > Answer:
 
---- question 24 fill here ---
+---
+
+In total, we spent 33.30 Euro (11th July 2024 at 4pm) for data and model storage (Buckets), Artifact registry, model training (Vertex AI and Compute Engine) and model deployment and inference (Cloud Run). The service costing the most was the Compute Engine due to the training of the model on a GPU.
+
+---
 
 ## Overall discussion of project
 
@@ -724,8 +777,23 @@ We added SLO to the Cloud Run "backend" to check the latency of the response, re
 >
 > Answer:
 
---- Overview of our overall architecture:
-![my_figure](figures/mlops_overview-fakenews.png) ---
+---
+
+<img src="figures/mlops_overview-fakenews.png" alt="my_figure" width="1000">
+
+The starting point of the diagram is our local development setup, where we utilize VSCode as our integrated development environment (IDE) and Conda for managing our Python dependencies. Our machine learning model development is facilitated through PyTorch and PyTorch-Lightning, which streamline the training process. Configuration management is handled using Hydra, while WandB is used for experiment tracking and visualization.
+
+Code changes are managed using Git and pushed to GitHub. The structure of our GitHub repository was initialized with the Data Science template by Cookiecutter. For data version control, we use DVC to track data and model versions. Whenever code is committed and pushed to main, it triggers our Continuous Integration (CI) pipeline via GitHub Actions. This pipeline performs automated checks including code style validation with pep8, unit testing to ensure code reliability, and pre-commit hooks to enforce coding standards. Additionally, API testing is conducted to verify the functionality of our endpoints.
+
+Docker is employed both locally and in the Google Cloud to containerize our applications and ensure consistency across different environments. Code changes in main trigger Cloud Build, which automates the building process of different Docker images, specifically the images training, predicting, frontend, backend and monitoring. Docker images are then pushed to Google Cloud’s Artifact Registry. For model and data storage as well as data version control, we use GCS Buckets. The Compute Engine and Vertex AI are used for training our models. While the Compute Engine can be used for training on a CPU and GPU (T4), we only trained the model on a CPU in Vertex AI.
+
+Our model deployment process also leverages Google Cloud Platform (GCP) services, specifically Cloud Run. In the deployment process, FastAPI serves as the backend framework, providing a robust API for model inference, and Streamlit is used for creating an interactive frontend application. Additionally, we implement data drift detection and telemetry to continuously track model performance and ensure its reliability over time. GCP Logging is utilized to monitor logs, errors, and system performance.
+
+We further experimented with scalable inference, performing quantization, pruning and distillation. Especially pruning and distillation, utilizing a smaller DistilBert model with reduced finetuning layer size yielded drastic improvements in inference speed with almost no loss in performance. See: https://github.com/StefanieSwz/fake-news-classification/blob/main/notebooks/distillation.ipynb
+
+In summary, our architecture integrates many tools and services to facilitate a development, deployment, and monitoring pipeline, ensuring an efficient and scalable machine learning solution.
+
+---
 
 ### Question 26
 
@@ -739,14 +807,22 @@ We added SLO to the Cloud Run "backend" to check the latency of the response, re
 >
 > Answer:
 
---- question 26 fill here ---
+---
+
+The biggest challenge we encountered during this project was effectively using Google Cloud Platform (GCP) services. This encompassed a range of tasks from cloud build automation to model training and deployment.
+
+One significant struggle was setting up Cloud Build and the Trigger workflow such that Docker images are built when pushing to the repository. Our project required the use of API keys, such as those for WandB, and large data files which were both not stored in the GitHub repository. However, GCP needs to acces both to create most images. We addressed this by using Google Cloud Secrets Manager to securely store API keys and credentials. Additionally, we set up GCP Buckets to manage and load data dynamically, ensuring that the sensitive information remained protected and not hardcoded into the GitHub repository.
+
+Training our models in a Virtual Machine (VM) presented another challenge, particularly related to resource management. Our initial configuration had the VM on Compute Engine set with only 3.7 GB of RAM. This limited memory led to frequent crashes during the training process, which was frustrating and difficult to diagnose. It took considerable time to pinpoint the issue through the logs. We resolved this by increasing the VM’s RAM to a more appropriate level for our model’s requirements. It was also a tedious task to re-apply for a GPU in different locations over and over again, since many Quota increase requests got denied.
+
+---
 
 ### Question 27
 
 > **State the individual contributions of each team member. This is required information from DTU, because we need to**
 > **make sure all members contributed actively to the project**
 >
-> Recommended answer length: 50-200 words.
+> Recommended answer length: 50-600 words.
 >
 > Example:
 > *Student sXXXXXX was in charge of developing of setting up the initial cookie cutter project and developing of the*
@@ -756,7 +832,20 @@ We added SLO to the Cloud Run "backend" to check the latency of the response, re
 >
 > Answer:
 
---- All together: Initial Project proposal, Initial cookie cutter template and git repo
-Stefanie Schwarz: GitHub owner, setting up dvc and google drive, managing access rights, initial make file, PR reviews for almost all branches, creating docker images for training and prediction, writing large part of tests for data, preprocessing, model and training, set up secrets for continuous integration, write dvc workflow for testing as well as docker trigger workflow in actions, set up GCP project and IAM rolles and compute engine, set up branch protection rules, fill report
+---
+
+All together: Initial Project proposal, Initial cookie cutter template and git repo
+
+Stefanie Schwarz:
+
+GitHub owner, set up DVC and Google Drive, managed access rights, created the initial Makefile, reviewed PRs for almost all branches, created Docker images for training and prediction, checked the profiling of PyTorch Lightning, wrote a large portion of tests for data, preprocessing, model, and training. Set up secrets for continuous integration, wrote the DVC workflow for testing, as well as the Docker trigger workflow in actions. Set up GCP project, IAM roles, and different Compute Engine instances with the setup of used packages and selected the appropriate images. Set up branch protection rules, tested deployment with TorchServe, monitored data drifting with Evidently and implemented initial FastAPI for monitoring. Implemented telemetry with Prometheus, set up monitoring in GCP with a Dashboard overview, enabled distributed data loading, attempted to calculate FLOPS during training and searched for alternative packages after failed execution. Informed the team about PyTorch quantization limitations, implemented pruning in model callbacks and tested functionality, updated MkDocs documentation, updated README for final project description, and wrote a large part of the report.
+
 Tobias Brock:
-Anne Gritto: ---
+
+Create files for preprocessing, model structure (torch lightning), training and data simulation for prediction. Allow distributed model training and profiling naturally with torch lightning setup. Create hydra setup for experiment tracking. Setup wandb team and experiment tracking for training, also setup sweep for hyperparameter optimization with random search. Create script to automatically sort models into the model registry of wandb that are saved as artifacts. Setup FastAPI application for model inference and update monitoring FastAPI app to load monitoring data into the cloud and offer different get options. Create setup for local deployment with torchserve (deprecated as it only supports nvidia GPUs). Create frontend for FastAPI inference, backend and setup dockerfiles with cloudbuild for frontend, backend and monitoring. Deploy frontend, backend (inference) as Cloud Run in Google Cloud Services and monitoring FastAPI. Calculate FLOPS of original model and perform quantization. Create notebooks for initial visualization of length distribution of titles, test set predictions and comparison of regular best model with quantized model. Create SLOs in the cloud for the performance of the backend. Setup pruning in the sweep to be included in the hyperparameter optimization. Create API tests for both FastAPI apps and also create locust file to check API loading. Create training script for model distillation training using the best model from the cloud. Setup distillation model file, including classes for "distilbert-base-uncased" and "albert-base-v2" and distillation training class using teacher and student model. Create benchmarking file to compare inference speed, FLOPS and test performance of models. Also setup notebook with corresponding plots.
+
+Anne Gritto:
+
+Set up the data workflow from Kaggle, established continuous integration, configured Ruff, and contributed to unit tests for data and model training. Implemented GitHub Actions workflow with integrated unit tests and code formatting, activated pre-commit hooks, set up service accounts, and created buckets in GCS for data and model storage. Linked buckets to DVC, set up Docker containers in Artifact Registry, and created trigger workflows in GCP related to GitHub repository pushes. Trained the model locally and on Vertex AI using a CPU, automatically saved the best model in a GCS Bucket, and created secrets in Google Cloud Secret Manager for WandB keys and service account credentials. Managed access to secrets during training and deployment, deployed the model in Google Cloud, contributed to documentation using MkDocs, and wrote part of the project report.
+
+---
