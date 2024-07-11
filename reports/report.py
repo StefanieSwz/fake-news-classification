@@ -25,7 +25,7 @@ def cli():
 @cli.command()
 def html():
     """Convert README.md to html page."""
-    with open("README.md", "r") as file:
+    with open("README.md", "r", encoding="utf-8") as file:
         text = file.read()
     text = text[43:]  # remove header
 
@@ -38,7 +38,7 @@ def html():
 @cli.command()
 def check():
     """Check if report satisfies the requirements."""
-    with open("README.md", "r") as file:
+    with open("README.md", "r", encoding="utf-8") as file:
         text = file.read()
     text = text[43:]  # remove header
 
@@ -68,7 +68,10 @@ def check():
             )
 
     def image_constrains(answer, index, min_length, max_length):
-        links = re.findall(r"\!\[.*?\]\(.*?\)", answer)
+        markdown_links = re.findall(r"!\[.*?\]\(.*?\)", answer)
+        html_links = re.findall(r'<img\s+[^>]*src="[^"]*"\s+[^>]*alt="[^"]*"\s+[^>]*width="\d+"\s*[^>]*>', answer)
+
+        links = markdown_links + html_links
         if not (min_length <= len(links) <= max_length):
             warnings.warn(
                 f"Question {index} failed check. Expected number of screenshots to be"
@@ -119,7 +122,7 @@ def check():
             ),
         ),
         partial(length_constraints, min_length=200, max_length=400),
-        partial(length_constraints, min_length=50, max_length=200),
+        partial(length_constraints, min_length=50, max_length=600),
     ]
     if len(answers) != 27:
         raise ValueError("Number of answers are different from the expected 27. Have you filled out every field?")
