@@ -93,7 +93,7 @@ def train_student(cfg: DictConfig, processed_data_dir, wandb_project, wandb_enti
     wandb.login(key=WANDB_API_KEY)
     run = wandb.init(project=wandb_project, entity=wandb_entity)
 
-    model_dir = DISTILLED_MODEL
+    model_dir = DISTILLED_MODEL / "test"
     os.makedirs(model_dir, exist_ok=True)
     train_dataloader, val_dataloader, test_dataloader = preprocess_data(cfg, processed_data_dir)
 
@@ -125,7 +125,7 @@ def train_student(cfg: DictConfig, processed_data_dir, wandb_project, wandb_enti
     )
 
     # Save the model checkpoint with a fixed name
-    fixed_checkpoint_path = os.path.join(model_dir, "model.ckpt")
+    fixed_checkpoint_path = os.path.join(model_dir, "distilled_model.ckpt")
     shutil.copy(best_model_path, fixed_checkpoint_path)
 
     # Evaluate the student model

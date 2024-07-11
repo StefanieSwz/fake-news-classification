@@ -372,19 +372,20 @@ def get_backend_url(service_name="backend", url="BACKEND_URL", timeout=120):
     return os.getenv(url, None)
 
 
-def load_gc_model(cfg: DictConfig):
+def load_gc_model(cfg: DictConfig, model_filename: str = "best_model.ckpt"):
     """
     Download a model from Google Cloud Storage (GCS).
 
     Args:
         cfg (DictConfig): Configuration object containing GCS parameters.
+        model_filename (str): The filename of the model to download (default is "best_model.ckpt").
 
     Returns:
         str: Local path to the downloaded model checkpoint.
     """
     bucket_name = cfg.cloud.bucket_name_model
-    model_path = os.path.join(cfg.cloud.model_dir, "best_model.ckpt")
-    local_model_path = os.path.join(tempfile.gettempdir(), "model.ckpt")
+    model_path = os.path.join(cfg.cloud.model_dir, model_filename)
+    local_model_path = os.path.join(tempfile.gettempdir(), model_filename)
     download_model_from_gcs(bucket_name, model_path, local_model_path)
 
     return local_model_path
