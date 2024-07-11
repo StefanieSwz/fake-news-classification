@@ -516,26 +516,25 @@ One can observe that the learning rate has the highest importance with respect t
 <p>Answer:</p>
 </blockquote>
 <hr />
-<p>For deployment we wrapped our model into application using FastAPI. We first deployed the model locally. Afterwards we deployed it in the cloud, using Cloud Run.</p>
+<p>For deployment we wrapped our model into application using FastAPI. We first deployed the model locally. Afterwards we deployed it in the cloud, using Cloud Run. </p>
 <p>Local deployment using FastAPI as backend (and for monitoring) and streamlit as frontend:
-      - backend and monitoring:
-bash
+- backend and monitoring:
+<code>bash
       uvicorn fakenews.app.inference_app:app --reload
-      uvicorn fakenews.app.monitoring_app:app --reload</p>
-<pre><code>  - frontend:
-</code></pre>
-<p>bash
-      streamlit run fakenews/app/frontend.py</p>
-<p>curl commands can also be used for requesting the API. However, one may deem the frontend as more convenient.</p>
+      uvicorn fakenews.app.monitoring_app:app --reload</code>
+- frontend:
+<code>bash
+      streamlit run fakenews/app/frontend.py</code>
+curl commands can also be used for requesting the API. However, one may deem the frontend as more convenient. </p>
 <p>An example for requesting the inference app deployed locally on port 8000:
-bash
+<code>bash
       curl -X POST "http://localhost:8000/predict_single/" \
      -H "Content-Type: application/json" \
-     -d '{"title": "Example news title"}'</p>
+     -d '{"title": "Example news title"}'</code></p>
 <p>Cloud deployment using Cloud Run and Cloud Build:
-bash
-      gcloud builds submit --config=config/cloudbuild_<name>.yaml</p>
-<p>This will automatically build the image, push it to the cloud and deploy the service, including frontend, backend and monitoring.</p>
+<code>bash
+      gcloud builds submit --config=config/cloudbuild_&lt;name&gt;.yaml</code>
+This will automatically build the image, push it to the cloud and deploy the service, including frontend, backend and monitoring.</p>
 <p>These are the URLS to open the deployed services:
       - frontend: https://frontend-awan6kp5bq-ey.a.run.app
       - backend: https://backend-awan6kp5bq-ey.a.run.app

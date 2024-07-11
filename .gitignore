@@ -188,5 +188,8 @@ cython_debug/
 # torchserve
 /logs
 
+# models
+/models
+
 # G cloud service account
 service_account_credentials.json
