@@ -14,6 +14,45 @@ from fakenews.config import (
 )
 
 
+def update_artifact_metadata_with_final_val_loss(cfg: DictConfig):
+    """
+    Update the artifact metadata with the final validation loss.
+
+    Args:
+        cfg (DictConfig): Configuration composed by Hydra.
+    """
+    wandb.login(key=WANDB_API_KEY)
+    api = wandb.Api()
+
+    runs = api.runs(path=f"{WANDB_ENTITY}/{WANDB_PROJECT}")
+
+    for run in runs:
+        try:
+            # Extract the final validation loss from the run's history
+            val_losses = [
+                s[cfg.predict.metric_name]
+                for s in run.scan_history(keys=[cfg.predict.metric_name])
+                if cfg.predict.metric_name in s
+            ]
+            if val_losses:
+                final_val_loss = val_losses[-1]
+                print(f"Final validation loss for run {run.id}: {final_val_loss}")
+
+                # Update each model artifact's metadata with the final validation loss
+                for artifact in run.logged_artifacts():
+                    if artifact.type == "model":
+                        artifact.metadata[cfg.predict.metric_name] = final_val_loss
+                        artifact.save()
+                        print(f"Updated artifact {artifact.name} with final validation loss: {final_val_loss}")
+            else:
+                print(f"No validation loss found for run {run.id}")
+
+        except wandb.errors.CommError as e:
+            print(f"Error accessing artifacts for run {run.id}: {e}")
+        except Exception as e:
+            print(f"Unexpected error accessing artifacts for run {run.id}: {e}")
+
+
 def link_all_artifacts_to_registry(cfg: DictConfig):
     """
     Link all artifacts to the model registry.
@@ -108,6 +147,7 @@ def stage_best_model_to_registry(cfg: DictConfig):
 def main(cfg: DictConfig):
     if cfg.predict.link_artifacts:
         link_all_artifacts_to_registry(cfg)
+    update_artifact_metadata_with_final_val_loss(cfg)
     stage_best_model_to_registry(cfg)
 
 

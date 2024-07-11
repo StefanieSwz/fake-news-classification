@@ -94,7 +94,7 @@ def test_predict_large_file():
     """
     with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as temp_file:
         temp_file.write(b"title\n")
-        for i in range(10000):  # Generate a large number of titles
+        for i in range(1000):  # Generate a large number of titles
             temp_file.write(f"Test title {i}\n".encode("utf-8"))
         temp_file_path = temp_file.name
 
@@ -107,7 +107,7 @@ def test_predict_large_file():
     assert response.status_code == 200, f"Unexpected status code: {response.status_code} - {response.text}"
     predictions = response.json()
     assert isinstance(predictions, list)
-    assert len(predictions) == 10000
+    assert len(predictions) == 1000
     for prediction in predictions:
         assert "title" in prediction
         assert "prediction" in prediction

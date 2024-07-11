@@ -4,3 +4,4 @@ defaults:
   - predict: predict
   - model: model
   - cloud: cloud
+  - distillation: distillation

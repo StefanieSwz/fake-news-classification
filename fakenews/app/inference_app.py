@@ -14,7 +14,7 @@ from prometheus_client import Counter, generate_latest, REGISTRY, CONTENT_TYPE_L
 from starlette.responses import Response
 from fakenews.data.preprocessing import DataPreprocessor
 from fakenews.model.model import BERTClass
-from fakenews.config import add_to_database, download_model_from_gcs
+from fakenews.config import add_to_database, load_gc_model
 
 app = FastAPI()
 
@@ -40,10 +40,7 @@ async def startup_event():
         cfg = hydra.compose(config_name="config")
 
     # Download the model from GCS
-    bucket_name = cfg.cloud.bucket_name_model
-    model_path = os.path.join(cfg.cloud.model_dir, "best_model.ckpt")
-    local_model_path = os.path.join(tempfile.gettempdir(), "model.ckpt")
-    download_model_from_gcs(bucket_name, model_path, local_model_path)
+    local_model_path = load_gc_model(cfg)
 
     # Load the trained model
     model = BERTClass.load_from_checkpoint(os.path.join(local_model_path), cfg=cfg)
@@ -63,7 +60,6 @@ async def predict(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     batch_size: int = Query(default=None, description="Batch size for prediction"),
-    max_length: int = Query(default=None, description="Max length for preprocessing"),
 ):
     """Generate predictions for the uploaded CSV file."""
     global model, device, cfg
@@ -78,10 +74,9 @@ async def predict(
 
     # Use parameters from the request or fallback to Hydra config
     batch_size = batch_size or cfg.train.batch_size
-    max_length = max_length or cfg.preprocess.max_length
 
     # Initialize the DataPreprocessor with the provided or default max_length
-    preprocessor = DataPreprocessor(data_dir=None, max_length=max_length)
+    preprocessor = DataPreprocessor(data_dir=None, max_length=cfg.preprocess.max_length)
 
     # Save uploaded file to a temporary directory
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -98,7 +93,6 @@ async def predict(
 
         # Use parameters from the request or fallback to Hydra config
         batch_size = batch_size or cfg.train.batch_size
-        max_length = max_length or cfg.preprocess.max_length
 
         # Prepare DataLoader for prediction data
         predict_dataloader = preprocessor.create_prediction_dataloader_from_df(data, batch_size=batch_size)
@@ -136,7 +130,6 @@ async def predict(
 async def predict_single(
     background_tasks: BackgroundTasks,
     title: Title,
-    max_length: int = Query(default=None, description="Max length for preprocessing"),
 ):
     """Generate prediction for a single title."""
     global model, device, cfg
@@ -145,10 +138,8 @@ async def predict_single(
     if model is None or device is None or cfg is None:
         await startup_event()
 
-    max_length = max_length or cfg.preprocess.max_length
-
     # Initialize the DataPreprocessor with the default max_length from config
-    preprocessor = DataPreprocessor(data_dir=None, max_length=max_length)
+    preprocessor = DataPreprocessor(data_dir=None, max_length=cfg.preprocess.max_length)
 
     # Transform the input JSON to a DataFrame with a title column
     data = pd.DataFrame([title.dict()])

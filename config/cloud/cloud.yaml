@@ -1,6 +1,7 @@
 bucket_name_model: 'mlops-fakenews-models'
 model_dir: 'models/'
 model_file: 'best_model.ckpt'
+distilled_file: "stu_bert_model.ckpt"
 val_loss_dir: 'val_loss/'
 val_loss_file: 'val_loss.txt'
 bucket_name_data: 'mlops-lmu-data-bucket'

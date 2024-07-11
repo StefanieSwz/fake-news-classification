@@ -1,4 +1,6 @@
-"""This script tests the models."""
+"""
+This script tests the models.
+"""
 
 from unittest.mock import MagicMock
 from hydra import compose, initialize
@@ -7,13 +9,11 @@ import torch
 
 from fakenews.model.model import BERTClass
 
-# Load the configuration from the YAML file
-# cfg = OmegaConf.load('config/model/model.yaml')
-
 
 # Initialize Hydra and load the configuration
 @pytest.fixture
 def cfg():
+    """Fixture to initialize and return the Hydra configuration."""
     with initialize(config_path="../../config", version_base=None):
         cfg = compose(config_name="config")
     return cfg
@@ -21,12 +21,13 @@ def cfg():
 
 @pytest.fixture
 def model(cfg):
+    """Fixture to initialize and return the BERTClass model."""
     return BERTClass(cfg)
 
 
 @pytest.fixture
 def sample_batch():
-    # Create a sample batch of data
+    """Fixture to create and return a sample batch of data."""
     sent_id = torch.tensor([[101, 2054, 2003, 1996, 2568, 102], [101, 2129, 2079, 2017, 4067, 102]])
     mask = torch.tensor([[1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1]])
     labels = torch.tensor([1, 0])
@@ -34,12 +35,26 @@ def sample_batch():
 
 
 def test_model_initialization(cfg):
+    """
+    Test the initialization of the BERTClass model.
+
+    Args:
+        cfg: Fixture providing the Hydra configuration.
+    """
     model = BERTClass(cfg)
     assert isinstance(model, BERTClass)
     assert model.bert.config.name_or_path == cfg.model.name
 
 
 def test_forward_pass(model, sample_batch, cfg):
+    """
+    Test the forward pass of the BERTClass model.
+
+    Args:
+        model: Fixture providing the BERTClass model.
+        sample_batch: Fixture providing a sample batch of data.
+        cfg: Fixture providing the Hydra configuration.
+    """
     sent_id, mask, _ = sample_batch
 
     # Perform the forward pass
@@ -57,6 +72,13 @@ def test_forward_pass(model, sample_batch, cfg):
 
 
 def test_training_step(model, sample_batch):
+    """
+    Test the training step of the BERTClass model.
+
+    Args:
+        model: Fixture providing the BERTClass model.
+        sample_batch: Fixture providing a sample batch of data.
+    """
     sent_id, mask, labels = sample_batch
     batch = (sent_id, mask, labels)
     batch_idx = 0
@@ -66,6 +88,13 @@ def test_training_step(model, sample_batch):
 
 
 def test_validation_step(model, sample_batch):
+    """
+    Test the validation step of the BERTClass model.
+
+    Args:
+        model: Fixture providing the BERTClass model.
+        sample_batch: Fixture providing a sample batch of data.
+    """
     batch = sample_batch
     batch_idx = 0
     val_output = model.validation_step(batch, batch_idx)
@@ -74,6 +103,13 @@ def test_validation_step(model, sample_batch):
 
 
 def test_test_step(model, sample_batch):
+    """
+    Test the test step of the BERTClass model.
+
+    Args:
+        model: Fixture providing the BERTClass model.
+        sample_batch: Fixture providing a sample batch of data.
+    """
     batch = sample_batch
     batch_idx = 0
     test_output = model.test_step(batch, batch_idx)
@@ -82,11 +118,25 @@ def test_test_step(model, sample_batch):
 
 
 def test_configure_optimizers(model):
+    """
+    Test the configure_optimizers method of the BERTClass model.
+
+    Args:
+        model: Fixture providing the BERTClass model.
+    """
     optimizer = model.configure_optimizers()
     assert isinstance(optimizer, torch.optim.AdamW)
 
 
 def test_get_preds_loss_accuracy(model, sample_batch, cfg):
+    """
+    Test the _get_preds_loss_accuracy method of the BERTClass model.
+
+    Args:
+        model: Fixture providing the BERTClass model.
+        sample_batch: Fixture providing a sample batch of data.
+        cfg: Fixture providing the Hydra configuration.
+    """
     preds, loss, acc = model._get_preds_loss_accuracy(sample_batch)
     assert preds.shape == (2, cfg.model.output_size)
     assert isinstance(loss, torch.Tensor)
