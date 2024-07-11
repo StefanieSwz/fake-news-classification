@@ -336,7 +336,7 @@ especially the reproducibility of your experiments.</p>
 </ul>
 <p><img src="figures/wandb_runs.png" alt="my_figure" width="1000"></p>
 <p>Failed training runs can be credited to adjustments in the code during development or manually stopped runs.
-In total 12 metrics are considered for an entire training run: </p>
+In total 12 metrics are considered for an entire training run:</p>
 <p>```bash</p>
 <ul>
 <li>
@@ -516,7 +516,7 @@ One can observe that the learning rate has the highest importance with respect t
 <p>Answer:</p>
 </blockquote>
 <hr />
-<p>For deployment we wrapped our model into application using FastAPI. We first deployed the model locally. Afterwards we deployed it in the cloud, using Cloud Run. </p>
+<p>For deployment we wrapped our model into application using FastAPI. We first deployed the model locally. Afterwards we deployed it in the cloud, using Cloud Run.</p>
 <p>Local deployment using FastAPI as backend (and for monitoring) and streamlit as frontend:
       - backend and monitoring:
 bash
@@ -526,7 +526,7 @@ bash
 </code></pre>
 <p>bash
       streamlit run fakenews/app/frontend.py</p>
-<p>curl commands can also be used for requesting the API. However, one may deem the frontend as more convenient. </p>
+<p>curl commands can also be used for requesting the API. However, one may deem the frontend as more convenient.</p>
 <p>An example for requesting the inference app deployed locally on port 8000:
 bash
       curl -X POST "http://localhost:8000/predict_single/" \
@@ -557,7 +557,7 @@ bash
 <p>For the inference app, we collect a broad set of metrics via the prometheus package. Most of the metrics are coming from a default setting, and one metric (number of made predictions) is manually implemented via incremention steps. If wished, the metrics can be accessed through a <code>metrics/</code> endpoint in our inference FastAPI app.</p>
 <p>On Google Cloud Platform, we tested the usability of the Monitoring Dashboard and created a widget for the CPU utilization and GPU RAM usage.
 We also created an alert system for a heavy request load to our Google Cloud Buckets, which was triggered once for now.</p>
-<p>We added SLO to the Cloud Run "backend" to check the latency of the response, requiring that 80% of reponses must be completed in max 5 seconds. We are also able to stress test our API using locust, spawning multiple users and requests at the same time. </p>
+<p>We added SLO to the Cloud Run "backend" to check the latency of the response, requiring that 80% of reponses must be completed in max 5 seconds. We are also able to stress test our API using locust, spawning multiple users and requests at the same time.</p>
 <hr />
 <h3>Question 24</h3>
 <blockquote>
@@ -605,7 +605,7 @@ We also created an alert system for a heavy request load to our Google Cloud Buc
 <p>Answer:</p>
 </blockquote>
 <hr />
-<p>The biggest challenge we encountered during this project was effectively using Google Cloud Platform (GCP) services. This encompassed a range of tasks from cloud build automation to model training and deployment. </p>
+<p>The biggest challenge we encountered during this project was effectively using Google Cloud Platform (GCP) services. This encompassed a range of tasks from cloud build automation to model training and deployment.</p>
 <p>One significant struggle was setting up Cloud Build and the Trigger workflow such that Docker images are built when pushing to the repository. Our project required the use of API keys, such as those for WandB, and large data files which were both not stored in the GitHub repository. However, GCP needs to acces both to create most images. We addressed this by using Google Cloud Secrets Manager to securely store API keys and credentials. Additionally, we set up GCP Buckets to manage and load data dynamically, ensuring that the sensitive information remained protected and not hardcoded into the GitHub repository.</p>
 <p>Training our models in a Virtual Machine (VM) presented another challenge, particularly related to resource management. Our initial configuration had the VM on Compute Engine set with only 3.7 GB of RAM. This limited memory led to frequent crashes during the training process, which was frustrating and difficult to diagnose. It took considerable time to pinpoint the issue through the logs. We resolved this by increasing the VM’s RAM to a more appropriate level for our model’s requirements. It was also a tedious task to re-apply for a GPU in different locations over and over again, since many Quota increase requests got denied.</p>
 <hr />
@@ -623,10 +623,10 @@ We also created an alert system for a heavy request load to our Google Cloud Buc
 </blockquote>
 <hr />
 <p>All together: Initial Project proposal, Initial cookie cutter template and git repo</p>
-<p>Stefanie Schwarz: </p>
+<p>Stefanie Schwarz:</p>
 <p>GitHub owner, set up DVC and Google Drive, managed access rights, created the initial Makefile, reviewed PRs for almost all branches, created Docker images for training and prediction, checked the profiling of PyTorch Lightning, wrote a large portion of tests for data, preprocessing, model, and training. Set up secrets for continuous integration, wrote the DVC workflow for testing, as well as the Docker trigger workflow in actions. Set up GCP project, IAM roles, and different Compute Engine instances with the setup of used packages and selected the appropriate images. Set up branch protection rules, tested deployment with TorchServe, monitored data drifting with Evidently and implemented initial FastAPI for monitoring. Implemented telemetry with Prometheus, set up monitoring in GCP with a Dashboard overview, enabled distributed data loading, attempted to calculate FLOPS during training and searched for alternative packages after failed execution. Informed the team about PyTorch quantization limitations, implemented pruning in model callbacks and tested functionality, updated MkDocs documentation, updated README for final project description, and wrote a large part of the report.</p>
-<p>Tobias Brock: </p>
+<p>Tobias Brock:</p>
 <p>Create files for preprocessing, model structure (torch lightning), training and data simulation for prediction. Allow distributed model training and profiling naturally with torch lightning setup. Create hydra setup for experiment tracking. Setup wandb team and experiment tracking for training, also setup sweep for hyperparameter optimization with random search. Create script to automatically sort models into the model registry of wandb that are saved as artifacts. Setup FastAPI application for model inference and update monitoring FastAPI app to load monitoring data into the cloud and offer different get options. Create setup for local deployment with torchserve (deprecated as it only supports nvidia GPUs). Create frontend for FastAPI inference, backend and setup dockerfiles with cloudbuild for frontend, backend and monitoring. Deploy frontend, backend (inference) as Cloud Run in Google Cloud Services and monitoring FastAPI. Calculate FLOPS of original model and perform quantization. Create notebooks for initial visualization of length distribution of titles, test set predictions and comparison of regular best model with quantized model. Create SLOs in the cloud for the performance of the backend. Setup pruning in the sweep to be included in the hyperparameter optimization. Create API tests for both FastAPI apps and also create locust file to check API loading. Create training script for model distillation training using the best model from the cloud. Setup distillation model file, including classes for "distilbert-base-uncased" and "albert-base-v2" and distillation training class using teacher and student model. Create benchmarking file to compare inference speed, FLOPS and test performance of models. Also setup notebook with corresponding plots.</p>
-<p>Anne Gritto: </p>
+<p>Anne Gritto:</p>
 <p>Set up the data workflow from Kaggle, established continuous integration, configured Ruff, and contributed to unit tests for data and model training. Implemented GitHub Actions workflow with integrated unit tests and code formatting, activated pre-commit hooks, set up service accounts, and created buckets in GCS for data and model storage. Linked buckets to DVC, set up Docker containers in Artifact Registry, and created trigger workflows in GCP related to GitHub repository pushes. Trained the model locally and on Vertex AI using a CPU, automatically saved the best model in a GCS Bucket, and created secrets in Google Cloud Secret Manager for WandB keys and service account credentials. Managed access to secrets during training and deployment, deployed the model in Google Cloud, contributed to documentation using MkDocs, and wrote part of the project report.</p>
 <hr />
