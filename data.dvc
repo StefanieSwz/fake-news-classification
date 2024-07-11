@@ -2,13 +2,6 @@ outs:
 - hash: md5
   path: data
   files:
-  - relpath: .DS_Store
-    md5: 01f7376a9cfe22f1427c640677e77217
-    size: 10244
-    cloud:
-      remote_storage:
-        etag: 08ff9da9b5f9f986031001
-        version_id: '1719428260187903'
   - relpath: predict/predict_data.csv
     md5: c02e3f4c38b7bf89636e674d5f3214e7
     size: 16875
