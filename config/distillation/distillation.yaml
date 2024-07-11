@@ -1,5 +1,7 @@
 temperature: 2.0
 alpha: 0.5
-st_model_name: "distilbert-base-uncased" #"bert-base-uncased"
+st_name_1: "albert-base-v2"
+st_name_2: "distilbert-base-uncased"
 st_hidden_size: 768  # Adjust based on the student model's hidden size
 st_intermediate_size: 256  # Adjust as needed
+class_name: "StudentBERTClass"

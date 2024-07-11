@@ -1,11 +1,15 @@
 import os
 import shutil
 import tempfile
+import importlib
 import hydra
 from omegaconf import DictConfig
 import wandb
+import torch
+from pytorch_lightning import Trainer
+from pytorch_lightning.loggers import WandbLogger
 from fakenews.model.model import BERTClass
-from fakenews.model.distillation_model import DistillationTrainer, StudentDistilBERTClass
+from fakenews.model.distillation_model import DistillationTrainer
 from fakenews.config import (
     DISTILLED_MODEL,
     MODEL_REGISTRY,
@@ -13,7 +17,7 @@ from fakenews.config import (
     access_secret_version,
     setup_data_directories,
 )
-from fakenews.model.train_model import preprocess_data, train_model
+from fakenews.model.train_model import preprocess_data, train_model, create_model_directory
 
 WANDB_API_KEY = access_secret_version("WANDB_API_KEY")
 WANDB_PROJECT = access_secret_version("WANDB_PROJECT")
@@ -40,7 +44,7 @@ def get_hyperparameters_from_wandb(artifact_path):
 def train_distillation(
     cfg: DictConfig,
     teacher_model: BERTClass,
-    student_model: StudentDistilBERTClass,
+    student_model,
     train_dataloader,
     val_dataloader,
     model_dir: str,
@@ -53,7 +57,7 @@ def train_distillation(
     Args:
         cfg (DictConfig): Configuration composed by Hydra.
         teacher_model (BERTClass): The pre-trained teacher model.
-        student_model (StudentBERTClass): The student model to train.
+        student_model: The student model to train.
         train_dataloader (DataLoader): DataLoader for the training data.
         val_dataloader (DataLoader): DataLoader for the validation data.
         model_dir (str): Directory where model checkpoints will be saved.
@@ -66,13 +70,75 @@ def train_distillation(
     distillation_trainer = DistillationTrainer(teacher_model, student_model, cfg)
 
     # Reuse the existing train_model function
-    best_model_path, val_loss = train_model(
+    _, val_loss = train_model(
         cfg, distillation_trainer, train_dataloader, val_dataloader, model_dir, wandb_project, wandb_entity
     )
-    return best_model_path, val_loss
+
+    # Save only the student model's state_dict
+    student_model_path = os.path.join(model_dir, "student_model.ckpt")
+    torch.save({"state_dict": student_model.state_dict()}, student_model_path)
+
+    return student_model_path, val_loss
 
 
-def train_student(cfg: DictConfig, processed_data_dir, wandb_project, wandb_entity):
+def eval_student(cfg: DictConfig, model_path: str, test_dataloader, wandb_project, wandb_entity, model_class):
+    """
+    Evaluate the model.
+
+    This function loads a BERT-based model from a state_dict, evaluates it on a test dataset,
+    and logs the results to Weights & Biases.
+
+    Args:
+        cfg (DictConfig): Configuration object composed by Hydra.
+        model_path (str): Path to the model state_dict.
+        test_dataloader (DataLoader): DataLoader for the test data.
+        wandb_project (str): Name of the Weights & Biases project.
+        wandb_entity (str): Name of the Weights & Biases entity (user or team).
+
+    Returns:
+        float: The test loss of the model.
+    """
+    # Initialize the model
+    model = model_class(cfg)
+
+    # Load the state dictionary
+    checkpoint = torch.load(model_path)
+    model.load_state_dict(checkpoint["state_dict"])
+    print(f"Loaded model from checkpoint: {model_path}")
+
+    wandb_logger = WandbLogger(
+        project=wandb_project,
+        entity=wandb_entity,
+    )
+
+    trainer = Trainer(
+        accelerator=("gpu" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"),
+        devices=cfg.train.devices,
+        logger=wandb_logger,
+    )
+
+    result = trainer.test(model, dataloaders=test_dataloader)
+    for key, value in result[0].items():
+        wandb.log({key: value})
+    return result[0]["test_loss"]
+
+
+def get_model_class(class_name):
+    """
+    Dynamically import and return the model class.
+
+    Args:
+        class_name (str): Name of the class to import.
+
+    Returns:
+        class: Imported class.
+    """
+    module_path = "fakenews.model.distillation_model"
+    module = importlib.import_module(module_path)
+    return getattr(module, class_name)
+
+
+def train_student(cfg: DictConfig, model_dir, processed_data_dir, wandb_project, wandb_entity):
     """
     Train the student model using fixed configuration.
 
@@ -93,7 +159,6 @@ def train_student(cfg: DictConfig, processed_data_dir, wandb_project, wandb_enti
     wandb.login(key=WANDB_API_KEY)
     run = wandb.init(project=wandb_project, entity=wandb_entity)
 
-    model_dir = DISTILLED_MODEL / "test"
     os.makedirs(model_dir, exist_ok=True)
     train_dataloader, val_dataloader, test_dataloader = preprocess_data(cfg, processed_data_dir)
 
@@ -116,24 +181,24 @@ def train_student(cfg: DictConfig, processed_data_dir, wandb_project, wandb_enti
         cfg.train.batch_size = teacher_hyperparams.get("train.batch_size", cfg.train.batch_size)
         cfg.train.pruning_rate = teacher_hyperparams.get("train.pruning_rate", 0.0)  # Default to 0.0 if not present
 
-    # Initialize the student model with the same hyperparameters
-    student_model = StudentDistilBERTClass(cfg)
+    # Dynamically import and initialize the student model class
+    student_model_class = get_model_class(cfg.distillation.class_name)
+    student_model = student_model_class(cfg)
+
+    model_dir = create_model_directory(cfg, model_dir)
 
     # Train the student model
-    best_model_path, _ = train_distillation(
+    student_model_path, _ = train_distillation(
         cfg, teacher_model, student_model, train_dataloader, val_dataloader, model_dir, wandb_project, wandb_entity
     )
 
-    # Save the model checkpoint with a fixed name
-    fixed_checkpoint_path = os.path.join(model_dir, "distilled_model.ckpt")
-    shutil.copy(best_model_path, fixed_checkpoint_path)
-
     # Evaluate the student model
-    # eval_model(cfg, model_dir, test_dataloader, wandb_project, wandb_entity, model_class=StudentDistilBERTClass)
+    eval_student(cfg, student_model_path, test_dataloader, wandb_project, wandb_entity, model_class=student_model_class)
 
-    # Upload the best model to GCS
-    with open(fixed_checkpoint_path, "rb") as f:
-        upload_to_gcs(f, cfg.cloud.bucket_name_model, os.path.join(cfg.cloud.model_dir, cfg.cloud.distilled_file))
+    if cfg.cloud.save_best_model_gcs:
+        # Upload the best model to GCS
+        with open(student_model_path, "rb") as f:
+            upload_to_gcs(f, cfg.cloud.bucket_name_model, os.path.join(cfg.cloud.model_dir, cfg.cloud.distilled_file))
 
     if not cfg.train.save_model:
         shutil.rmtree(model_dir)
@@ -149,7 +214,7 @@ def main(cfg: DictConfig):
     """
 
     _, PROCESSED_DATA_DIR, _, _ = setup_data_directories(cfg=cfg)
-    train_student(cfg, PROCESSED_DATA_DIR, WANDB_PROJECT, WANDB_ENTITY)
+    train_student(cfg, DISTILLED_MODEL, PROCESSED_DATA_DIR, WANDB_PROJECT, WANDB_ENTITY)
 
 
 if __name__ == "__main__":

@@ -34,7 +34,7 @@ class StudentBERTClass(pl.LightningModule):
             cfg (DictConfig): Configuration composed by Hydra.
         """
         super(StudentBERTClass, self).__init__()
-        self.bert = AutoModel.from_pretrained(cfg.distillation.st_model_name)
+        self.bert = AutoModel.from_pretrained(cfg.distillation.st_name_1)
         self.dropout = nn.Dropout(cfg.model.dropout_rate)
         self.relu = nn.ReLU()
         self.fc1 = nn.Linear(cfg.distillation.st_hidden_size, cfg.distillation.st_intermediate_size)
@@ -75,6 +75,83 @@ class StudentBERTClass(pl.LightningModule):
         """
         return torch.optim.AdamW(self.parameters(), lr=self.lr)
 
+    def training_step(self, batch, batch_idx):
+        """
+        Defines a single step in the training loop.
+
+        Args:
+            batch (tuple): The input batch of data.
+            batch_idx (int): The index of the batch.
+
+        Returns:
+            torch.Tensor: The computed loss for the batch.
+        """
+        sent_id, mask, labels = batch
+        outputs = self(sent_id, mask)
+        loss = self.criterion(outputs, labels)
+        acc = (labels == outputs.argmax(dim=-1)).float().mean()
+
+        self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log("train_acc", acc, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        """
+        Defines a single step in the validation loop.
+
+        Args:
+            batch (tuple): The input batch of data.
+            batch_idx (int): The index of the batch.
+
+        Returns:
+            dict: Dictionary containing the validation loss and accuracy.
+        """
+        sent_id, mask, labels = batch
+        outputs = self(sent_id, mask)
+        loss = self.criterion(outputs, labels)
+        acc = (labels == outputs.argmax(dim=-1)).float().mean()
+        self.log("val_loss", loss, on_epoch=True, prog_bar=True, logger=True)
+        self.log("val_accuracy", acc, on_epoch=True, prog_bar=True, logger=True)
+        return {"val_loss": loss, "val_acc": acc}
+
+    def test_step(self, batch, batch_idx):
+        """
+        Defines a single step in the test loop.
+
+        Args:
+            batch (tuple): The input batch of data.
+            batch_idx (int): The index of the batch.
+
+        Returns:
+            dict: Dictionary containing the test predictions, labels, loss, and accuracy.
+        """
+        sent_id, mask, labels = batch
+        outputs = self(sent_id, mask)
+        loss = self.criterion(outputs, labels)
+        acc = (labels == outputs.argmax(dim=-1)).float().mean()
+        self.log("test_loss", loss)
+
+        # Store predictions and labels for the entire test set
+        self.test_preds.append(outputs)
+        self.test_labels.append(labels)
+
+        return {"preds": outputs, "labels": labels, "loss": loss, "acc": acc}
+
+    def on_test_epoch_end(self):
+        """
+        Computes metrics at the end of the test epoch.
+        """
+        preds = torch.cat(self.test_preds).argmax(dim=1)  # Convert preds to discrete labels
+        labels = torch.cat(self.test_labels)
+        report = classification_report(labels.cpu().numpy(), preds.cpu().numpy(), output_dict=True)
+        self.log("test_accuracy", report["accuracy"])
+        print("Classification Report:")
+        print(report)
+
+        # Clear the lists for the next test
+        self.test_preds.clear()
+        self.test_labels.clear()
+
 
 class StudentDistilBERTClass(pl.LightningModule):
     """
@@ -103,7 +180,7 @@ class StudentDistilBERTClass(pl.LightningModule):
             cfg (DictConfig): Configuration composed by Hydra.
         """
         super(StudentDistilBERTClass, self).__init__()
-        self.bert = AutoModel.from_pretrained(cfg.distillation.st_model_name)
+        self.bert = AutoModel.from_pretrained(cfg.distillation.st_name_2)
         self.dropout = nn.Dropout(cfg.model.dropout_rate)
         self.relu = nn.ReLU()
         self.fc1 = nn.Linear(cfg.distillation.st_hidden_size, cfg.distillation.st_intermediate_size)
@@ -144,6 +221,83 @@ class StudentDistilBERTClass(pl.LightningModule):
             torch.optim.Optimizer: The configured optimizer.
         """
         return torch.optim.AdamW(self.parameters(), lr=self.lr)
+
+    def training_step(self, batch, batch_idx):
+        """
+        Defines a single step in the training loop.
+
+        Args:
+            batch (tuple): The input batch of data.
+            batch_idx (int): The index of the batch.
+
+        Returns:
+            torch.Tensor: The computed loss for the batch.
+        """
+        sent_id, mask, labels = batch
+        outputs = self(sent_id, mask)
+        loss = self.criterion(outputs, labels)
+        acc = (labels == outputs.argmax(dim=-1)).float().mean()
+
+        self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log("train_acc", acc, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        """
+        Defines a single step in the validation loop.
+
+        Args:
+            batch (tuple): The input batch of data.
+            batch_idx (int): The index of the batch.
+
+        Returns:
+            dict: Dictionary containing the validation loss and accuracy.
+        """
+        sent_id, mask, labels = batch
+        outputs = self(sent_id, mask)
+        loss = self.criterion(outputs, labels)
+        acc = (labels == outputs.argmax(dim=-1)).float().mean()
+        self.log("val_loss", loss, on_epoch=True, prog_bar=True, logger=True)
+        self.log("val_accuracy", acc, on_epoch=True, prog_bar=True, logger=True)
+        return {"val_loss": loss, "val_acc": acc}
+
+    def test_step(self, batch, batch_idx):
+        """
+        Defines a single step in the test loop.
+
+        Args:
+            batch (tuple): The input batch of data.
+            batch_idx (int): The index of the batch.
+
+        Returns:
+            dict: Dictionary containing the test predictions, labels, loss, and accuracy.
+        """
+        sent_id, mask, labels = batch
+        outputs = self(sent_id, mask)
+        loss = self.criterion(outputs, labels)
+        acc = (labels == outputs.argmax(dim=-1)).float().mean()
+        self.log("test_loss", loss)
+
+        # Store predictions and labels for the entire test set
+        self.test_preds.append(outputs)
+        self.test_labels.append(labels)
+
+        return {"preds": outputs, "labels": labels, "loss": loss, "acc": acc}
+
+    def on_test_epoch_end(self):
+        """
+        Computes metrics at the end of the test epoch.
+        """
+        preds = torch.cat(self.test_preds).argmax(dim=1)  # Convert preds to discrete labels
+        labels = torch.cat(self.test_labels)
+        report = classification_report(labels.cpu().numpy(), preds.cpu().numpy(), output_dict=True)
+        self.log("test_accuracy", report["accuracy"])
+        print("Classification Report:")
+        print(report)
+
+        # Clear the lists for the next test
+        self.test_preds.clear()
+        self.test_labels.clear()
 
 
 class DistillationTrainer(pl.LightningModule):
