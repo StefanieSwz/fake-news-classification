@@ -681,12 +681,12 @@ Build history with images triggered from local and by pushing into the repositor
 For deployment we wrapped our model into application using FastAPI. We first deployed the model locally. Afterwards we deployed it in the cloud, using Cloud Run. 
 
 Local deployment using FastAPI as backend (and for monitoring) and streamlit as frontend: 
-      - backend and monitoring: 
+- backend and monitoring: 
 ```bash
       uvicorn fakenews.app.inference_app:app --reload
       uvicorn fakenews.app.monitoring_app:app --reload
 ```
-      - frontend: 
+- frontend: 
 ```bash
       streamlit run fakenews/app/frontend.py
 ```
