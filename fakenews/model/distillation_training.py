@@ -1,0 +1,221 @@
+import os
+import shutil
+import tempfile
+import importlib
+import hydra
+from omegaconf import DictConfig
+import wandb
+import torch
+from pytorch_lightning import Trainer
+from pytorch_lightning.loggers import WandbLogger
+from fakenews.model.model import BERTClass
+from fakenews.model.distillation_model import DistillationTrainer
+from fakenews.config import (
+    DISTILLED_MODEL,
+    MODEL_REGISTRY,
+    upload_to_gcs,
+    access_secret_version,
+    setup_data_directories,
+)
+from fakenews.model.train_model import preprocess_data, train_model, create_model_directory
+
+WANDB_API_KEY = access_secret_version("WANDB_API_KEY")
+WANDB_PROJECT = access_secret_version("WANDB_PROJECT")
+WANDB_ENTITY = access_secret_version("WANDB_ENTITY")
+
+
+def get_hyperparameters_from_wandb(artifact_path):
+    """
+    Retrieve hyperparameters from a WandB artifact.
+
+    Args:
+        artifact_path (str): The path to the artifact in WandB.
+
+    Returns:
+        dict: A dictionary containing the hyperparameters.
+    """
+    api = wandb.Api()
+    artifact = api.artifact(artifact_path)
+    run = artifact.logged_by()
+    config = run.config
+    return config
+
+
+def train_distillation(
+    cfg: DictConfig,
+    teacher_model: BERTClass,
+    student_model,
+    train_dataloader,
+    val_dataloader,
+    model_dir: str,
+    wandb_project,
+    wandb_entity,
+):
+    """
+    Train the student model using knowledge distillation.
+
+    Args:
+        cfg (DictConfig): Configuration composed by Hydra.
+        teacher_model (BERTClass): The pre-trained teacher model.
+        student_model: The student model to train.
+        train_dataloader (DataLoader): DataLoader for the training data.
+        val_dataloader (DataLoader): DataLoader for the validation data.
+        model_dir (str): Directory where model checkpoints will be saved.
+        wandb_project (str): Name of the Weights & Biases project.
+        wandb_entity (str): Name of the Weights & Biases entity (user or team).
+
+    Returns:
+        tuple: Best model path and validation loss.
+    """
+    distillation_trainer = DistillationTrainer(teacher_model, student_model, cfg)
+
+    # Reuse the existing train_model function
+    _, val_loss = train_model(
+        cfg, distillation_trainer, train_dataloader, val_dataloader, model_dir, wandb_project, wandb_entity
+    )
+
+    # Save only the student model's state_dict
+    student_model_path = os.path.join(model_dir, "student_model.ckpt")
+    torch.save({"state_dict": student_model.state_dict()}, student_model_path)
+
+    return student_model_path, val_loss
+
+
+def eval_student(cfg: DictConfig, model_path: str, test_dataloader, wandb_project, wandb_entity, model_class):
+    """
+    Evaluate the model.
+
+    This function loads a BERT-based model from a state_dict, evaluates it on a test dataset,
+    and logs the results to Weights & Biases.
+
+    Args:
+        cfg (DictConfig): Configuration object composed by Hydra.
+        model_path (str): Path to the model state_dict.
+        test_dataloader (DataLoader): DataLoader for the test data.
+        wandb_project (str): Name of the Weights & Biases project.
+        wandb_entity (str): Name of the Weights & Biases entity (user or team).
+
+    Returns:
+        float: The test loss of the model.
+    """
+    # Initialize the model
+    model = model_class(cfg)
+
+    # Load the state dictionary
+    checkpoint = torch.load(model_path)
+    model.load_state_dict(checkpoint["state_dict"])
+    print(f"Loaded model from checkpoint: {model_path}")
+
+    wandb_logger = WandbLogger(
+        project=wandb_project,
+        entity=wandb_entity,
+    )
+
+    trainer = Trainer(
+        accelerator=("gpu" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"),
+        devices=cfg.train.devices,
+        logger=wandb_logger,
+    )
+
+    result = trainer.test(model, dataloaders=test_dataloader)
+    for key, value in result[0].items():
+        wandb.log({key: value})
+    return result[0]["test_loss"]
+
+
+def get_model_class(class_name):
+    """
+    Dynamically import and return the model class.
+
+    Args:
+        class_name (str): Name of the class to import.
+
+    Returns:
+        class: Imported class.
+    """
+    module_path = "fakenews.model.distillation_model"
+    module = importlib.import_module(module_path)
+    return getattr(module, class_name)
+
+
+def train_student(cfg: DictConfig, model_dir, processed_data_dir, wandb_project, wandb_entity):
+    """
+    Train the student model using fixed configuration.
+
+    This function sets up the data, loads the teacher model, initializes the student model,
+    trains the student model using knowledge distillation, and evaluates the student model.
+
+    Args:
+        cfg (DictConfig): Configuration composed by Hydra.
+        processed_data_dir (str): Directory where the processed data is stored.
+        models_dir (str): Directory where model checkpoints will be saved.
+        wandb_project (str): Name of the Weights & Biases project.
+        wandb_entity (str): Name of the Weights & Biases entity (user or team).
+
+    Returns:
+        None
+    """
+    # Use Wandb with local credentials
+    wandb.login(key=WANDB_API_KEY)
+    run = wandb.init(project=wandb_project, entity=wandb_entity)
+
+    os.makedirs(model_dir, exist_ok=True)
+    train_dataloader, val_dataloader, test_dataloader = preprocess_data(cfg, processed_data_dir)
+
+    # Load the teacher model
+    with tempfile.TemporaryDirectory() as artifact_dir:
+        artifact = run.use_artifact(f"{wandb_entity}/model-registry/{MODEL_REGISTRY}:best", type="model")
+        artifact.download(root=artifact_dir)
+        teacher_model_path = os.path.join(artifact_dir, "model.ckpt")
+        teacher_model = BERTClass.load_from_checkpoint(teacher_model_path, cfg=cfg)
+
+        # Extract hyperparameters from the teacher model wandb run
+        teacher_hyperparams = get_hyperparameters_from_wandb(f"{wandb_entity}/model-registry/{MODEL_REGISTRY}:best")
+
+        # Print the hyperparameters to understand their structure
+        print("Teacher Hyperparameters:", teacher_hyperparams)
+
+        # Use .get() to safely access dictionary keys
+        cfg.train.lr = teacher_hyperparams.get("train.lr", cfg.train.lr)
+        cfg.model.dropout_rate = teacher_hyperparams.get("model.dropout_rate", cfg.model.dropout_rate)
+        cfg.train.batch_size = teacher_hyperparams.get("train.batch_size", cfg.train.batch_size)
+        cfg.train.pruning_rate = teacher_hyperparams.get("train.pruning_rate", 0.0)  # Default to 0.0 if not present
+
+    # Dynamically import and initialize the student model class
+    student_model_class = get_model_class(cfg.distillation.class_name)
+    student_model = student_model_class(cfg)
+
+    model_dir = create_model_directory(cfg, model_dir)
+
+    # Train the student model
+    student_model_path, _ = train_distillation(
+        cfg, teacher_model, student_model, train_dataloader, val_dataloader, model_dir, wandb_project, wandb_entity
+    )
+
+    # Evaluate the student model
+    eval_student(cfg, student_model_path, test_dataloader, wandb_project, wandb_entity, model_class=student_model_class)
+
+    if cfg.cloud.save_best_model_gcs:
+        # Upload the best model to GCS
+        with open(student_model_path, "rb") as f:
+            upload_to_gcs(f, cfg.cloud.bucket_name_model, os.path.join(cfg.cloud.model_dir, cfg.cloud.distilled_file))
+
+    if not cfg.train.save_model:
+        shutil.rmtree(model_dir)
+
+
+@hydra.main(config_path="../../config", config_name="config", version_base="1.2")
+def main(cfg: DictConfig):
+    """
+    Main function to handle command-line arguments and run the training process.
+
+    Args:
+        cfg (DictConfig): Configuration composed by Hydra.
+    """
+
+    _, PROCESSED_DATA_DIR, _, _ = setup_data_directories(cfg=cfg)
+    train_student(cfg, DISTILLED_MODEL, PROCESSED_DATA_DIR, WANDB_PROJECT, WANDB_ENTITY)
+
+
+if __name__ == "__main__":
+    main()

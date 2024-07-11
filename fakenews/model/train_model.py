@@ -6,14 +6,24 @@ import hydra
 from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
+from pytorch_lightning.callbacks import (
+    EarlyStopping,
+    ModelCheckpoint,
+    TQDMProgressBar,
+    ModelPruning,
+)
 from pytorch_lightning.loggers import WandbLogger
 import torch
 import yaml
+import wandb
 from fakenews.data.preprocessing import DataPreprocessor
 from fakenews.model.model import BERTClass
-import wandb
-from fakenews.config import MODELS_DIR, access_secret_version, setup_data_directories, compare_and_upload_best_model
+from fakenews.config import (
+    MODELS_DIR,
+    access_secret_version,
+    setup_data_directories,
+    compare_and_upload_best_model,
+)
 
 
 def preprocess_data(cfg: DictConfig, processed_data_dir):
@@ -108,7 +118,7 @@ def train_model(
         save_weights_only=False,
     )
     callbacks.append(checkpoint_callback)
-
+    print("Callbacks:", callbacks)
     early_stopping_callback = EarlyStopping(
         monitor="val_loss", patience=cfg.train.patience, verbose=cfg.train.verbose, mode="min"
     )
@@ -117,6 +127,10 @@ def train_model(
     progress_bar = TQDMProgressBar(refresh_rate=cfg.train.refresh_rate)
     callbacks.append(progress_bar)
 
+    if cfg.train.pruning:
+        pruning_callback = ModelPruning("l1_unstructured", amount=cfg.train.pruning_rate)
+        callbacks.append(pruning_callback)
+
     accelerator = "gpu" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 
     wandb_logger = WandbLogger(
@@ -124,7 +138,7 @@ def train_model(
         project=wandb_project,
         entity=wandb_entity,
     )
-
+    print("Wandb logger initialized.")
     trainer = Trainer(
         profiler=cfg.train.profiler,
         precision=cfg.train.precision,
@@ -138,7 +152,7 @@ def train_model(
         logger=wandb_logger,
         default_root_dir=model_dir,
     )
-
+    print("Trainer initialized.")
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
     print(f"Callback metrics: {trainer.callback_metrics}")
     val_loss = trainer.callback_metrics.get("val_loss")
@@ -151,7 +165,7 @@ def train_model(
     return best_model_path, val_loss.item()
 
 
-def eval_model(cfg: DictConfig, model_dir: str, test_dataloader, wandb_project, wandb_entity):
+def eval_model(cfg: DictConfig, model_dir: str, test_dataloader, wandb_project, wandb_entity, model_class=BERTClass):
     """
     Evaluate the model.
 
@@ -169,7 +183,7 @@ def eval_model(cfg: DictConfig, model_dir: str, test_dataloader, wandb_project, 
         float: The test loss of the model.
     """
     model_checkpoint_path = os.path.join(model_dir, cfg.train.filename + ".ckpt")
-    model = BERTClass.load_from_checkpoint(model_checkpoint_path, cfg=cfg)
+    model = model_class.load_from_checkpoint(model_checkpoint_path, cfg=cfg)
     print(f"Loaded model from checkpoint: {model_checkpoint_path}")
 
     wandb_logger = WandbLogger(
@@ -189,7 +203,7 @@ def eval_model(cfg: DictConfig, model_dir: str, test_dataloader, wandb_project, 
     return result[0]["test_loss"]
 
 
-def run_sweep(cfg: DictConfig, processed_data_dir, models_dir, wandb_project, wandb_entity):
+def run_sweep(cfg: DictConfig, processed_data_dir, models_dir, wandb_api_key, wandb_project, wandb_entity):
     """
     Run a Weights & Biases sweep.
 
@@ -211,6 +225,7 @@ def run_sweep(cfg: DictConfig, processed_data_dir, models_dir, wandb_project, wa
         sweep_config = yaml.safe_load(file)
         print(sweep_config)
 
+    wandb.login(key=wandb_api_key)
     # Initialize wandb sweep
     sweep_id = wandb.sweep(sweep_config, project=wandb_project, entity=wandb_entity)
 
@@ -238,6 +253,7 @@ def run_sweep(cfg: DictConfig, processed_data_dir, models_dir, wandb_project, wa
                 overrides=[
                     f"train.lr={sweep_config['train.lr']}",
                     f"train.batch_size={sweep_config['train.batch_size']}",
+                    f"train.pruning_rate={sweep_config['train.pruning_rate']}",
                     f"model.dropout_rate={sweep_config['model.dropout_rate']}",
                 ],
             )
@@ -247,7 +263,6 @@ def run_sweep(cfg: DictConfig, processed_data_dir, models_dir, wandb_project, wa
 
         # Create model directory
         model_dir = create_model_directory(cfg, models_dir)
-
         # Preprocess data
         train_dataloader, val_dataloader, test_dataloader = preprocess_data(cfg, processed_data_dir)
 
@@ -304,7 +319,6 @@ def train_fixed(cfg: DictConfig, processed_data_dir, models_dir, wandb_api_key, 
 
     # Create model directory
     model_dir = create_model_directory(cfg, models_dir)
-
     # Preprocess data
     train_dataloader, val_dataloader, test_dataloader = preprocess_data(cfg, processed_data_dir)
 
@@ -353,7 +367,7 @@ def main(cfg: DictConfig):
         _, PROCESSED_DATA_DIR, _, _ = setup_data_directories(cfg=cfg)
 
     if cfg.train.sweep:
-        run_sweep(cfg, PROCESSED_DATA_DIR, MODELS_DIR, WANDB_PROJECT, WANDB_ENTITY)
+        run_sweep(cfg, PROCESSED_DATA_DIR, MODELS_DIR, WANDB_API_KEY, WANDB_PROJECT, WANDB_ENTITY)
     else:
         train_fixed(cfg, PROCESSED_DATA_DIR, MODELS_DIR, WANDB_API_KEY, WANDB_PROJECT, WANDB_ENTITY)
 

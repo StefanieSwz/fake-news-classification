@@ -9,6 +9,7 @@ import pandas as pd
 
 from omegaconf import DictConfig
 from google.cloud import secretmanager, storage
+from google.api_core.exceptions import DeadlineExceeded
 
 import streamlit as st
 from google.cloud import run_v2
@@ -18,6 +19,7 @@ import tempfile
 
 # Load environment variables from .env file if it exists
 load_dotenv()
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 WANDB_API_KEY = os.getenv("WANDB_API_KEY")
 WANDB_PROJECT = os.getenv("WANDB_PROJECT")
@@ -39,6 +41,8 @@ MONITORING_DATA_DIR = DATA_DIR / "monitoring"
 MODELS_DIR = PROJ_ROOT / "models"
 BEST_MODEL = MODELS_DIR / "best_model"
 DEPLOY_MODEL = MODELS_DIR / "deploy"
+QUANTIZED_MODEL = MODELS_DIR / "quantized_model"
+DISTILLED_MODEL = MODELS_DIR / "distillation_model"
 
 REPORTS_DIR = PROJ_ROOT / "reports"
 FIGURES_DIR = REPORTS_DIR / "figures"
@@ -260,7 +264,8 @@ def compare_and_upload_best_model(cfg: DictConfig, model_checkpoint_path, val_lo
     try:
         best_val_loss_cloud = float(
             get_string_from_gcs(
-                cfg.cloud.bucket_name_model, os.path.join(cfg.cloud.val_loss_dir, cfg.cloud.val_loss_file)
+                cfg.cloud.bucket_name_model,
+                os.path.join(cfg.cloud.val_loss_dir, cfg.cloud.val_loss_file),
             )
         )
     except Exception as e:
@@ -270,7 +275,9 @@ def compare_and_upload_best_model(cfg: DictConfig, model_checkpoint_path, val_lo
         print("New best model found. Uploading to GCS.")
         with open(model_checkpoint_path, "rb") as model_file:
             upload_to_gcs(
-                model_file, cfg.cloud.bucket_name_model, os.path.join(cfg.cloud.model_dir, cfg.cloud.model_file)
+                model_file,
+                cfg.cloud.bucket_name_model,
+                os.path.join(cfg.cloud.model_dir, cfg.cloud.model_file),
             )
         upload_string_to_gcs(
             str(val_loss),
@@ -349,12 +356,36 @@ def add_to_database(cfg: DictConfig, predictions: list) -> None:
 
 
 @st.cache_resource
-def get_backend_url(service_name="backend", url="BACKEND_URL"):
-    """Get the URL of the backend service."""
+def get_backend_url(service_name="backend", url="BACKEND_URL", timeout=120):
+    """Get the URL of the backend service with a timeout and retry mechanism."""
     parent = "projects/mlops-fakenews/locations/europe-west3"
     client = run_v2.ServicesClient()
-    services = client.list_services(parent=parent)
-    for service in services:
-        if service.name.split("/")[-1] == service_name:
-            return service.uri
+
+    try:
+        services = client.list_services(parent=parent, timeout=timeout)
+        for service in services:
+            if service.name.split("/")[-1] == service_name:
+                return service.uri
+    except DeadlineExceeded:
+        print("Timeout exceeded while fetching the backend URL.")
+
     return os.getenv(url, None)
+
+
+def load_gc_model(cfg: DictConfig, model_filename: str = "best_model.ckpt"):
+    """
+    Download a model from Google Cloud Storage (GCS).
+
+    Args:
+        cfg (DictConfig): Configuration object containing GCS parameters.
+        model_filename (str): The filename of the model to download (default is "best_model.ckpt").
+
+    Returns:
+        str: Local path to the downloaded model checkpoint.
+    """
+    bucket_name = cfg.cloud.bucket_name_model
+    model_path = os.path.join(cfg.cloud.model_dir, model_filename)
+    local_model_path = os.path.join(tempfile.gettempdir(), model_filename)
+    download_model_from_gcs(bucket_name, model_path, local_model_path)
+
+    return local_model_path

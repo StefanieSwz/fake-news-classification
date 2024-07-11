@@ -200,6 +200,7 @@ class DataPreprocessor:
             batch_size=batch_size,
             num_workers=get_num_workers(),
             persistent_workers=True,
+            pin_memory=True,  # for speeding up GPU utilization
         )
 
         val_data = TensorDataset(val_seq, val_mask, val_y)
@@ -210,6 +211,7 @@ class DataPreprocessor:
             batch_size=batch_size,
             num_workers=get_num_workers(),
             persistent_workers=True,
+            pin_memory=True,  # for speeding up GPU utilization
         )
 
         test_data = TensorDataset(test_seq, test_mask, test_y)
@@ -220,6 +222,7 @@ class DataPreprocessor:
             batch_size=batch_size,
             num_workers=get_num_workers(),
             persistent_workers=True,
+            pin_memory=True,  # for speeding up GPU utilization
         )
 
         return train_dataloader, val_dataloader, test_dataloader

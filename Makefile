@@ -77,6 +77,14 @@ generate:
 train:
 	$(PYTHON_INTERPRETER) fakenews/model/train_model.py ${ARGS}
 
+.PHONY: train_distillation
+train_distillation:
+	$(PYTHON_INTERPRETER) fakenews/model/distillation_training.py ${ARGS}
+
+.PHONY: compare_models
+compare_models:
+	$(PYTHON_INTERPRETER) fakenews/inference/distillation.py ${ARGS}
+
 ## Make wandb_registry
 .PHONY: wandb_registry
 wandb_registry:
