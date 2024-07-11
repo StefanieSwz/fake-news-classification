@@ -82,7 +82,7 @@ curriculum in this course. Therefore, we do not expect at all that you have chec
 <p>Answer:</p>
 </blockquote>
 <hr />
-<p>not applicable </p>
+<p>not applicable</p>
 <hr />
 <h3>Question 2</h3>
 <blockquote>
@@ -92,7 +92,7 @@ curriculum in this course. Therefore, we do not expect at all that you have chec
 <p>Answer:</p>
 </blockquote>
 <hr />
-<p>Tobias Brock: 12651637, Anne Gritto: 11946974, Stefanie Schwarz: 12662420 </p>
+<p>Tobias Brock: 12651637, Anne Gritto: 11946974, Stefanie Schwarz: 12662420</p>
 <hr />
 <h3>Question 3</h3>
 <blockquote>
@@ -105,7 +105,7 @@ curriculum in this course. Therefore, we do not expect at all that you have chec
 </blockquote>
 <hr />
 <p>We used the third-party framework PyTorch, specifically leveraging Torch Lightning, in our project. We used functionality from PyTorch for defining and training neural network models, taking advantage of its flexible and efficient tensor operations. Torch Lightning provided a higher-level interface that simplified the process of training and validating our models, managing the boilerplate code and improving the reproducibility of our experiments.</p>
-<p>The automatic handling of training loops, validation checks, and logging within Torch Lightning significantly accelerated our development process. We also utilized its built-in support for multi-GPU training and checkpointing, which ensured efficient use of computational resources and easy recovery of model states. Overall, using PyTorch and Torch Lightning allowed us to focus more on the core logic and experimentation aspects of the project, rather than the intricacies of model training, which greatly contributed to the successful completion of our project. </p>
+<p>The automatic handling of training loops, validation checks, and logging within Torch Lightning significantly accelerated our development process. We also utilized its built-in support for multi-GPU training and checkpointing, which ensured efficient use of computational resources and easy recovery of model states. Overall, using PyTorch and Torch Lightning allowed us to focus more on the core logic and experimentation aspects of the project, rather than the intricacies of model training, which greatly contributed to the successful completion of our project.</p>
 <hr />
 <h2>Coding environment</h2>
 <blockquote>
@@ -132,7 +132,7 @@ To get a complete copy of our development environment, one would have to run the
 <p>% Install all packages from requirements.txt and additional</p>
 <p>pip install -r requirements.txt</p>
 <p>pip install nvgpu</p>
-<p>% Install the project dependencies: </p>
+<p>% Install the project dependencies:</p>
 <p>pip install -e .</p>
 <p>```</p>
 <hr />
@@ -149,7 +149,7 @@ Answer:</p>
 </blockquote>
 <hr />
 <p>From the cookiecutter template cookiecutter-data-science, we filled out most of the provided folders and added a few additional ones for our project's specific needs. Specifically, we included the data, docker, and models folders to handle data storage, source code, and model definitions respectively. However, the references folder was not applicable to our simple model.</p>
-<p>Additionally, we chose not to use setup.cfg because flake8 linting is handled by ruff. We also added a config folder to implement Hydra for configuration management, and a tests folder to facilitate unit testing and continuous integration through GitHub Actions. This structure ensures that our project is well-organized and maintains best practices for scalability and collaboration. </p>
+<p>Additionally, we chose not to use setup.cfg because flake8 linting is handled by ruff. We also added a config folder to implement Hydra for configuration management, and a tests folder to facilitate unit testing and continuous integration through GitHub Actions. This structure ensures that our project is well-organized and maintains best practices for scalability and collaboration.</p>
 <hr />
 <h3>Question 6</h3>
 <blockquote>
@@ -163,7 +163,7 @@ Answer:</p>
 <code>ruff format . # formats all files in directory, respectively</code>
 <code>pre-commit run --all-files # as ruff linting and ruff formatter are used as precommit hooks</code>
 Also every function is required a docstring in our repo.
-This matters because of readability and mitigating having minor changes (as new lines at end of the script) during a commit. Having google doc strings in every function allows for facilitated code comprehension and is therefore a best practice. </p>
+This matters because of readability and mitigating having minor changes (as new lines at end of the script) during a commit. Having google doc strings in every function allows for facilitated code comprehension and is therefore a best practice.</p>
 <hr />
 <h2>Version control</h2>
 <blockquote>
@@ -180,7 +180,7 @@ corporate and increase the quality of your code.</p>
 <p>Answer:</p>
 </blockquote>
 <hr />
-<p>In total we have implemented 39 tests. We are testing the data part of the project, especially with make_dataset.py and preprocessing.py, and the model related part, which is aiming at the model.py and train_model.py. The other scripts of the module are mainly consisting of the one function, which is highly entangeled with other services like wandb. The testing is more complex here, since this functionality has to be mocked and can't be tested. Additionally, we wrote two test files for integration test of the inference and monitoring app. </p>
+<p>In total we have implemented 39 tests. We are testing the data part of the project, especially with make_dataset.py and preprocessing.py, and the model related part, which is aiming at the model.py and train_model.py. The other scripts of the module are mainly consisting of the one function, which is highly entangeled with other services like wandb. The testing is more complex here, since this functionality has to be mocked and can't be tested. Additionally, we wrote two test files for integration test of the inference and monitoring app.</p>
 <hr />
 <h3>Question 8</h3>
 <blockquote>
@@ -194,7 +194,7 @@ corporate and increase the quality of your code.</p>
 </blockquote>
 <hr />
 <p>The total code coverage of our code is 75%, which includes fakenews\config.py, fakenews\data\make_dataset.py, fakenews\data\preprocessing.py, fakenews\model\model.py, fakenews\model\train_model.py, and all related init and test files. While we strive for higher coverage, achieving 100% coverage is challenging due to the complexity and interactions of advanced functions, many of which are wrapped within other functions, making them difficult to test in isolation.</p>
-<p>Even if we were to reach 100% code coverage, it would not necessarily guarantee that the code is error-free. Code coverage metrics indicate how much of the code is executed during testing, but they do not guarantee the absence of logical errors, edge cases, or unforeseen interactions. It is crucial to complement high code coverage with comprehensive testing strategies, including integration tests, system tests, and manual testing, to ensure the robustness and reliability of the software. </p>
+<p>Even if we were to reach 100% code coverage, it would not necessarily guarantee that the code is error-free. Code coverage metrics indicate how much of the code is executed during testing, but they do not guarantee the absence of logical errors, edge cases, or unforeseen interactions. It is crucial to complement high code coverage with comprehensive testing strategies, including integration tests, system tests, and manual testing, to ensure the robustness and reliability of the software.</p>
 <hr />
 <h3>Question 9</h3>
 <blockquote>
@@ -208,7 +208,7 @@ corporate and increase the quality of your code.</p>
 </blockquote>
 <hr />
 <p>We made use of both branches and pull requests (PRs) in our project. Each member of our group created their own branches to work on distinct features, ensuring isolated development environments. From an early stage of the project, every branch was merged into the main branch exclusively through PRs, which were reviewed by another team member. This practice underscored the importance of the "Zwei-Augen-Prinzip" (two-eyes principle), ensuring that code quality was consistently improved through peer reviews.</p>
-<p>Although we aimed to include main branch protection rules to enforce this practice through GitHub, our private account did not support this feature. Nonetheless, we implemented continuous integration with unit tests and pre-commit checks as a form of branch protection, ensuring that only thoroughly vetted code was integrated into the main branch. This workflow significantly improved our version control process, maintaining code quality and reducing integration issues. </p>
+<p>Although we aimed to include main branch protection rules to enforce this practice through GitHub, our private account did not support this feature. Nonetheless, we implemented continuous integration with unit tests and pre-commit checks as a form of branch protection, ensuring that only thoroughly vetted code was integrated into the main branch. This workflow significantly improved our version control process, maintaining code quality and reducing integration issues.</p>
 <hr />
 <h3>Question 10</h3>
 <blockquote>
@@ -249,7 +249,7 @@ Our unit tests are divided into various components, with a specific focus on the
 </li>
 <li>
 <p>Docker Image Build and Deployment
-We have a workflow that triggers on PRs to the main branch. This workflow builds a Docker image for training on Google Cloud Build and saves it at the Artifact Registry. </p>
+We have a workflow that triggers on PRs to the main branch. This workflow builds a Docker image for training on Google Cloud Build and saves it at the Artifact Registry.</p>
 </li>
 <li>
 <p>Example Workflow
@@ -327,7 +327,62 @@ especially the reproducibility of your experiments.</p>
 <em>As seen in the second image we are also tracking ... and ...</em></p>
 <p>Answer:</p>
 </blockquote>
-<p>--- question 14 fill here ---</p>
+<hr />
+<ol>
+<li>The first image provides an overview of the total number of runs that were performed. However, many of those runs were not completed or did not necessarily include model training, for example, when downloading an artifact from the model registry.</li>
+</ol>
+<p><img src="figures/wandb_runs.png" alt="my_figure" width="1500"></p>
+<p>Failed training runs can be credited to adjustments in the code during development or manually stopped runs.
+In total 12 metrics are considered for an entire training run: </p>
+<p>```
+  - dropout rate</p>
+<ul>
+<li>
+<p>learning rate</p>
+</li>
+<li>
+<p>batch size</p>
+</li>
+<li>
+<p>epoch</p>
+</li>
+<li>
+<p>training loss per 50 steps</p>
+</li>
+<li>
+<p>training accuracy per 50 steps</p>
+</li>
+<li>
+<p>training loss at the end of each epoch</p>
+</li>
+<li>
+<p>training accuracy at the end of each epoch</p>
+</li>
+<li>
+<p>validation loss at the end of each epoch</p>
+</li>
+<li>
+<p>validation accuracy at the end of each epoch</p>
+</li>
+<li>
+<p>test loss</p>
+</li>
+<li>
+<p>test accuracy</p>
+</li>
+</ul>
+<p>```</p>
+<ol>
+<li>The second image provides an overview of the hyperparameter optimization sweep using random search that was performed to obtain the best model that is later staged as such in the model registry.
+One can observe that the learning rate has the highest importance with respect to the validation loss, which was selected as a tuning criterion to prevent test set bias. Especially lower learning rates achieve lower validation loss at the end of the training periods.</li>
+</ol>
+<p><img src="figures/wandb_sweep.png" alt="my_figure" width="1500"></p>
+<ol>
+<li>The third image is an overview of the model registry. Only the five models created by the hyperparameter optimization sweep were added to the model registry. However, artifacts can be added automatically by using a make command.</li>
+</ol>
+<p><img src="figures/wandb_registry.png" alt="my_figure" width="1500"></p>
+<p>Moreover, the best model in the registry is then flagged based on the lowest validation loss at the end of the training period, denoted by VAL_LOSS in the picture.</p>
+<hr />
 <h3>Question 15</h3>
 <blockquote>
 <p><strong>Docker is an important tool for creating containerized applications. Explain how you used docker in your</strong>
@@ -340,15 +395,15 @@ especially the reproducibility of your experiments.</p>
 </blockquote>
 <hr />
 <p>For our project, we developed several Docker images: one for training, one for inference, and one for deployment. This approach ensured a consistent environment across different stages of our workflow.</p>
-<p>To run the training Docker image locally, we use the following commands: </p>
+<p>To run the training Docker image locally, we use the following commands:</p>
 <p>```bash</p>
 <p>docker build -f docker/trainer_local.dockerfile . -t trainer:latest</p>
 <p>docker run --name <container_name> -v %cd%/models:/models/ trainer:latest train.local_data=True train.local_wandb=True <model.dropout_rate=0.3 train.batch_size=8></p>
 <p>```</p>
-<p>This setup mounts the models folder to save the weights locally, allowing us to persist the trained models outside of the container. </p>
+<p>This setup mounts the models folder to save the weights locally, allowing us to persist the trained models outside of the container.</p>
 <p>For running the training via Google Cloud Run, we have seperate docker files and we do not mount the folder, as these platforms handle storage differently.</p>
 <p>By using Docker, we ensured that our experiments were reproducible and could be easily shared with team members or deployed to different environments without compatibility issues.</p>
-<p>Link to the trainer Docker file (for cloud usage): https://github.com/StefanieSwz/fake-news-classification/blob/main/trainer.dockerfile </p>
+<p>Link to the trainer Docker file (for cloud usage): https://github.com/StefanieSwz/fake-news-classification/blob/main/trainer.dockerfile</p>
 <hr />
 <h3>Question 16</h3>
 <blockquote>
@@ -383,7 +438,7 @@ especially the reproducibility of your experiments.</p>
 - <strong>Vertex AI</strong> to train the model on CPUs. With Vertex AI, we can create custom jobs and use the docker containers that have everything to run our code. Although it is also possible to train on a GPU using Vertex AI, we did not get an approval to increase quota.
 - <strong>Compute Engine</strong> to train the model on both, CPUs and GPUs. To train with a GPU, we used a Nvidia T4 GPU with a public deep learning image that has Python 3.10 and CUDA 12.1 preinstalled. The training on a CPU uses an <code>e2-standard-4</code> as machine type.
 - <strong>Cloud Run</strong> to deploy the model with a frontend and backend application.
-- <strong>Secret Manager</strong> to store Weights and Biases API key to make code runnable in the Cloud. </p>
+- <strong>Secret Manager</strong> to store Weights and Biases API key to make code runnable in the Cloud.</p>
 <hr />
 <h3>Question 18</h3>
 <blockquote>
@@ -408,8 +463,7 @@ especially the reproducibility of your experiments.</p>
 </blockquote>
 <hr />
 <p>Buckets for storing data and model weights:</p>
-<p><code>markdown
-![my_figure](figures/buckets-fakenews.png)</code></p>
+<p><img src="figures/buckets-fakenews.png" alt="my_figure" width="1500"></p>
 <hr />
 <h3>Question 20</h3>
 <blockquote>
@@ -419,8 +473,7 @@ especially the reproducibility of your experiments.</p>
 </blockquote>
 <hr />
 <p>Images of training, predicting as well as deployment of backend and frontend:</p>
-<p><code>markdown
-![my_figure](figures/artifacts-fakenews.png)</code></p>
+<p><img src="figures/artifacts-fakenews.png" alt="my_figure" width="1500"></p>
 <hr />
 <h3>Question 21</h3>
 <blockquote>
@@ -430,8 +483,7 @@ especially the reproducibility of your experiments.</p>
 </blockquote>
 <hr />
 <p>Build history with images triggered from local and by pushing into the repository:</p>
-<p>% <img alt="my_figure" src="figures/builds-fakenews.png" />
-<img src="figures/builds-fakenews.png" alt="my_figure" width="1500"></p>
+<p><img src="figures/builds-fakenews.png" alt="my_figure" width="1500"></p>
 <hr />
 <h3>Question 22</h3>
 <blockquote>
@@ -455,7 +507,13 @@ especially the reproducibility of your experiments.</p>
 <em>measure ... and ... that would inform us about this ... behaviour of our application.</em></p>
 <p>Answer:</p>
 </blockquote>
-<p>--- question 23 fill here ---</p>
+<hr />
+<p>We implemented monitoring for data drift of our textual data (also in form of their embedding values) and label distribution coming from a reference database and a monitoring database originating from our inference app. The report can be accessed via a FastAPI application that creates reports and also download them.</p>
+<p>For your inference app we collect a broad set of metrics via the prometheus package. Most of the metrics are coming from a default setting, and one metric (number of made predictions) is manually implemented via incremention steps. If wished, the metrics can be accessed through a <code>metrics/</code> endpoint in out inference FastAPI app.</p>
+<p>On Google Cloud Platform, we tested the usability of the Monitoring Dashboard and we have a widget for the CPU utilization and GPU RAM usage.
+We also created an alert system for a heavy request load to our google cloud buckets, which was triggered one for now.</p>
+<p>We added SLO to the Cloud Run "backend" to check the latency of the response, requiring that 80% of reponses must be completed in max 5 seconds. We are also able to stress test our API using locust, spawning multiple users and requests at the same time. </p>
+<hr />
 <h3>Question 24</h3>
 <blockquote>
 <p><strong>How many credits did you end up using during the project and what service was most expensive?</strong></p>

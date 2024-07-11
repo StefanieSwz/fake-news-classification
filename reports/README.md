@@ -124,7 +124,11 @@ not applicable
 
 ---
 
-Tobias Brock: 12651637, Anne Gritto: 11946974, Stefanie Schwarz: 12662420
+Tobias Brock: 12651637
+
+Anne Gritto: 11946974
+
+Stefanie Schwarz: 12662420
 
 ---
 
@@ -443,7 +447,54 @@ To reproduce an experiment, one would simply need to:
 >
 > Answer:
 
---- question 14 fill here ---
+---
+
+1. The first image provides an overview of the total number of runs that were performed. However, many of those runs were not completed or did not necessarily include model training, for example, when downloading an artifact from the model registry.
+
+<img src="figures/wandb_runs.png" alt="my_figure" width="1500">
+
+Failed training runs can be credited to adjustments in the code during development or manually stopped runs.
+In total 12 metrics are considered for an entire training run:
+
+```
+  - dropout rate
+
+  - learning rate
+
+  - batch size
+
+  - epoch
+
+  - training loss per 50 steps
+
+  - training accuracy per 50 steps
+
+  - training loss at the end of each epoch
+
+  - training accuracy at the end of each epoch
+
+  - validation loss at the end of each epoch
+
+  - validation accuracy at the end of each epoch
+
+  - test loss
+
+  - test accuracy
+
+```
+
+2. The second image provides an overview of the hyperparameter optimization sweep using random search that was performed to obtain the best model that is later staged as such in the model registry.
+One can observe that the learning rate has the highest importance with respect to the validation loss, which was selected as a tuning criterion to prevent test set bias. Especially lower learning rates achieve lower validation loss at the end of the training periods.
+
+<img src="figures/wandb_sweep.png" alt="my_figure" width="1500">
+
+3. The third image is an overview of the model registry. Only the five models created by the hyperparameter optimization sweep were added to the model registry. However, artifacts can be added automatically by using a make command.
+
+<img src="figures/wandb_registry.png" alt="my_figure" width="1500">
+
+Moreover, the best model in the registry is then flagged based on the lowest validation loss at the end of the training period, denoted by VAL_LOSS in the picture.
+
+---
 
 ### Question 15
 
@@ -627,7 +678,18 @@ Build history with images triggered from local and by pushing into the repositor
 >
 > Answer:
 
---- question 23 fill here ---
+---
+
+We implemented monitoring for data drift of our textual data (also in form of their embedding values) and label distribution coming from a reference database and a monitoring database originating from our inference app. The report can be accessed via a FastAPI application that creates reports and also download them.
+
+For your inference app we collect a broad set of metrics via the prometheus package. Most of the metrics are coming from a default setting, and one metric (number of made predictions) is manually implemented via incremention steps. If wished, the metrics can be accessed through a `metrics/` endpoint in out inference FastAPI app.
+
+On Google Cloud Platform, we tested the usability of the Monitoring Dashboard and we have a widget for the CPU utilization and GPU RAM usage.
+We also created an alert system for a heavy request load to our google cloud buckets, which was triggered one for now.
+
+We added SLO to the Cloud Run "backend" to check the latency of the response, requiring that 80% of reponses must be completed in max 5 seconds. We are also able to stress test our API using locust, spawning multiple users and requests at the same time.
+
+ ---
 
 ### Question 24
 
