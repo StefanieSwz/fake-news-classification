@@ -46,46 +46,80 @@ We focus on transformer-based models, specifically BERT and SBERT:
 ├── LICENSE            <- Open-source license if one is chosen
 ├── Makefile           <- Makefile with convenience commands like `make data` or `make train`
 ├── README.md          <- The top-level README for developers using this project.
+├── config             <- Config folder for hydra usage.
+│   ├── cloud
+│   ├── model
+│   ├── predict
+│   ├── preprocess
+│   └── train
+│
 ├── data
+│   ├── predict        <- Sampled data set to test predicting capability.
 │   ├── processed      <- The final, canonical data sets for modeling.
 │   └── raw            <- The original, immutable data dump.
+│  
+├── data.dvc           <- DVC folder to pull complete data folder from Google Cloud Bucket.
+├── docker             <- Containing all docker files.
+├── docs               <- Mkdocs project; see mkdocs.org for details.
 │
-├── docs               <- A default mkdocs project; see mkdocs.org for details
+├── models             <- Trained and serialized models, model predictions, or model summaries.
 │
-├── models             <- Trained and serialized models, model predictions, or model summaries
-│
-├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-│                         the creator's initials, and a short `-` delimited description, e.g.
-│                         `1.0-jqp-initial-data-exploration`.
+├── notebooks          <- Notebooks for visualization purposes.
+│   ├── descriptives.ipynb
+│   └── predictions.ipynb
 │
 ├── pyproject.toml     <- Project configuration file with package metadata for fakenews
 │                         and configuration for tools like black
 │
-├── references         <- Data dictionaries, manuals, and all other explanatory materials.
-│
 ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-│   └── figures        <- Generated graphics and figures to be used in reporting
+│   ├── figures        <- Generated graphics and figures to be used in reporting
+│   ├── monitoring
+│   │   ├── data_drift_report.html
+│   │   ├── data_drift_tests.html
+│   │   └── text_drift_metrics.html
+│   ├── README.md      <- Final Hand-in source file for report for MLOps
+│   └── report.py
 │
 ├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
 │                         generated with `pip freeze > requirements.txt`
 │
-└── fakenews                <- Source code for use in this project.
-    │
-    ├── __init__.py    <- Makes fakenews a Python module
-    │
-    ├── data           <- Scripts to download or generate data
-    │   └── make_dataset.py
-    │
-    ├── features       <- Scripts to turn raw data into features for modeling
-    │   └── build_features.py
-    │
-    ├── models         <- Scripts to train models and then use trained models to make
-    │   │                 predictions
-    │   ├── predict_model.py
-    │   └── train_model.py
-    │
-    └── visualization  <- Scripts to create exploratory and results oriented visualizations
-        └── visualize.py
+├── tests              <- Test folder, to be executed with `pytest tests` from root directory
+│   ├── integrationtests
+│   │   ├── test_inference.py
+│   │   └── test_monitoring.py
+│   ├── performancetests
+│   │   └── locustfile.py
+│   └── unit
+│       ├── test_data.py
+│       ├── test_model.py
+│       └── test_train.py
+│
+└── fakenews                    <- Source code for use in this project.
+    ├── app
+    │   ├── frontend.py
+    │   ├── inference_app.py
+    │   └── monitoring_app.py
+    │
+    ├── config.py
+    ├── data                    <- Scripts to download or generate data
+    │   ├── data_generator.py
+    │   ├── make_dataset.py
+    │   └── preprocessing.py
+    │
+    ├── model                   <- Scripts to train models and usage
+    │   ├── bert_handler.py
+    │   ├── model.py
+    │   ├── predict.py
+    │   ├── train_model.py
+    │   ├── transform_model.py
+    │   └── wandb_registry.py
+    │
+    ├── monitoring
+    │   └── data_drift.py
+    │
+    └── visualizations          <- Scripts to create exploratory and results oriented visualizations
+        └── plots.py
+
 ```
 
 --------
