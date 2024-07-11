@@ -47,4 +47,6 @@ We used two different services to train on the Cloud, Vertex AI and the Compute 
 
 ### Compute Engine
 
-To train on a GPU, we selected an image with Nvidia drivers and Pytorch to create a Virtual Machine with 100GB storage. When starting The VM for the first time you are prompted: `install nvidia driver?[y/n]` and then type `y`. Git is already installed, `nvidia-smi` and `conda`are available.
+To train on a GPU, we selected an image with Nvidia drivers and Pytorch (`c0-deeplearning-common-cu121-v20240627-debian-11-py310`) to create a Virtual Machine with 100GB storage and `n1-standard-8` machine type. When starting The VM for the first time you are prompted: `install nvidia driver?[y/n]` and then type `y`. Git is already installed, `nvidia-smi` and `conda`are available.
+
+The rest of the training is analoug to local training.
