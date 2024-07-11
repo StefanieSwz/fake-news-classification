@@ -678,39 +678,39 @@ Build history with images triggered from local and by pushing into the repositor
 
 ---
 
-For deployment we wrapped our model into application using FastAPI. We first deployed the model locally. Afterwards we deployed it in the cloud, using Cloud Run.
+For deployment we wrapped our model into application using FastAPI. We first deployed the model locally. Afterwards we deployed it in the cloud, using Cloud Run. 
 
-Local deployment using FastAPI as backend (and for monitoring) and streamlit as frontend:
-      - backend and monitoring:
-bash
+Local deployment using FastAPI as backend (and for monitoring) and streamlit as frontend: 
+      - backend and monitoring: 
+```bash
       uvicorn fakenews.app.inference_app:app --reload
       uvicorn fakenews.app.monitoring_app:app --reload
-
-      - frontend:
-bash
+```
+      - frontend: 
+```bash
       streamlit run fakenews/app/frontend.py
-
-curl commands can also be used for requesting the API. However, one may deem the frontend as more convenient.
+```
+curl commands can also be used for requesting the API. However, one may deem the frontend as more convenient. 
 
 An example for requesting the inference app deployed locally on port 8000:
-bash
+```bash
       curl -X POST "http://localhost:8000/predict_single/" \
      -H "Content-Type: application/json" \
      -d '{"title": "Example news title"}'
+```
 
 Cloud deployment using Cloud Run and Cloud Build:
-bash
+```bash
       gcloud builds submit --config=config/cloudbuild_<name>.yaml
-
+```
 This will automatically build the image, push it to the cloud and deploy the service, including frontend, backend and monitoring.
 
-These are the URLS to open the deployed services:
+These are the URLS to open the deployed services: 
       - frontend: https://frontend-awan6kp5bq-ey.a.run.app
       - backend: https://backend-awan6kp5bq-ey.a.run.app
       - monitoring: https://monitoring-awan6kp5bq-ey.a.run.app
 
 Curl requests can be sent analogously.
-
 
 ---
 
