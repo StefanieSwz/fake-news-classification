@@ -36,14 +36,16 @@ To train with hyperparameter optimization, sweep can be run with `make train ARG
 
 ## Training on Google Cloud
 
-We used two different services to train on the Cloud, Vertex AI and the Compute Engine. We were able to increase quota for the Compute Engine such that we can train on a Nvidia T4 GPU. For Vertex AI, we did not get a quota increase, i.e. we only train on a CPU.
+We used two different services to train on the Cloud, Vertex AI and the Compute Engine. We were able to increase quota for both services such that we can train on a Nvidia T4 GPU as well as on CPUs only.
 
 ### Vertex AI
 
-1. Check that `config_cpu.yaml` is in `config/`. It specifies the machine type we are using (`n1-highnem-2`) and the docker image saved in the Artifact registry `europe-west3-docker.pkg.dev/mlops-fakenews/mlops-fakenews-container/trainer:latest`.
-2. Train in the cloud by `gcloud ai custom-jobs create --region=europe-west3 --display-name=train-run --config=config/config_cpu.yaml --service-account=sa-mlops@mlops-fakenews.iam.gserviceaccount.com` optionally specify parameters: `--args train.epochs=1`
+1. Check that `config_cpu.yaml` and/or `config_gpu.yaml` are in `config/`. `config_cpu.yaml` specifies the machine type we are using (`n1-highnem-2`) and the docker image saved in the Artifact registry `europe-west3-docker.pkg.dev/mlops-fakenews/mlops-fakenews-container/trainer:latest`. `config_gpu.yaml` uses the same image but as machine type `n1-standard-8` and specifies additionally the accelerator type as `NVIDIA_TESLA_T4`.
+2. Train in the cloud on a CPU by `gcloud ai custom-jobs create --region=europe-west3 --display-name=train-run --config=config/config_cpu.yaml --service-account=sa-mlops@mlops-fakenews.iam.gserviceaccount.com` optionally specify parameters: `--args train.epochs=1`
 
-3. Monitor on GCP: `Vertex AI > Training > Custom Jobs > View Logs`
+Train in the cloud on a GPU by `gcloud ai custom-jobs create --region=europe-west1 --display-name=test-run-gpu-3 --config=config/config_gpu.yaml --service-account=sa-mlops@mlops-fakenews.iam.gserviceaccount.com`. Note that setting the right region (`europe-west1`) is important to access the GPU.
+
+3. Monitor on GCP: `Vertex AI > Training > Custom Jobs > View Logs`. Also here navigate to the region you specified in the gcloud command.
 
 ### Compute Engine
 

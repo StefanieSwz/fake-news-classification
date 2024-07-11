@@ -40,3 +40,9 @@ git remote add origin <GitHub repo URL>
 git branch -M main
 git push -u origin main
 ```
+
+## Cloud Setup
+
+1. Make sure that [Google Cloud CLI](https://cloud.google.com/sdk/docs/install) is installed and initialized by `gcloud init`.
+2. Authenticate account with the following command: `gcloud auth login`
+3. Configure authentification with service account credentials by `gcloud auth activate-service-account sa-mlops@mlops-fakenews.iam.gserviceaccount.com --key-file=service_account_credentials.json`

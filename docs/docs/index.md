@@ -38,6 +38,6 @@ We decided to focus only on BERT, since the project is meant to showcast the who
 ## Overview
 
 <figure markdown="span">
-  ![Architecture overview](figs/mlops_overview-fakenews.png){ width="800" }
+  ![Architecture overview](figures/mlops_overview-fakenews.png){ width="800" }
   <figcaption>Architecture overview</figcaption>
 </figure>
