@@ -31,14 +31,15 @@ The dataset includes:
 4. **Label**: A binary label indicating whether the news is fake (0) or real (1).
 
 ### Models
+Suitable models are mainly transformer-based:
 
-We focus on transformer-based models, specifically BERT and SBERT:
-1. **DistilBERT**: Distilled version of BERT without fine-tuning on the training data should serve as baseline model.
+1. Distilled version of BERT without fine-tuning on the training data could serve as baseline model.
 
-2. **BERT**: BERT is pre-trained on a large corpus and we will further fine-tune the model for our specific tasks of fake news classification. Its contextual embeddings will help improve the classifier's accuracy in distinguishing real and fake news.
+2. BERT is pre-trained on a large corpus and can further be fine-tune the model for our specific tasks of fake news classification. Its contextual embeddings will help improve the classifier's accuracy in distinguishing real and fake news.
 
-3. **SBERT**: SBERT is a variant of BERT designed to produce semantically meaningful sentence embeddings, making it suitable for understanding sentence-level semantics in news articles.
+3. SBERT is a variant of BERT designed to produce semantically meaningful sentence embeddings, making it suitable for understanding sentence-level semantics in news articles.
 
+We decided to focus only on BERT, since the project is meant to showcast the whole deployment cycle of a deep learning model and supporting different model classes would increase the amount of backend code tremendously.
 
 ## Project Organization
 
