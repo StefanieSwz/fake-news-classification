@@ -4,9 +4,9 @@
     <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" />
 </a>
 
-MLOps Project of Tobias Brock, Anne Gritto und Stefanie Schwarz.
+MLOps Project of Tobias Brock, Anne Gritto and Stefanie Schwarz.
 
-This project is part of the fullfilment for the lecture "ML Operations" from LMU and covers the whole deployment lifecycle of a deep learning project. Here we deploy a model for fake news classification.
+This project is part of the fulfillment for the lecture "ML Operations" from LMU and covers the whole deployment lifecycle of a deep learning project. Here we deploy a model for fake news classification.
 
 ## Project Description: Fake News Classifier
 
@@ -35,21 +35,21 @@ Suitable models are mainly transformer-based:
 
 1. Distilled version of BERT without fine-tuning on the training data could serve as baseline model.
 
-2. BERT is pre-trained on a large corpus and can further be fine-tune the model for our specific tasks of fake news classification. Its contextual embeddings will help improve the classifier's accuracy in distinguishing real and fake news.
+2. BERT is pre-trained on a large corpus and can further be fine-tuned for our specific tasks of fake news classification. Its contextual embeddings will help improve the classifier's accuracy in distinguishing real and fake news.
 
 3. SBERT is a variant of BERT designed to produce semantically meaningful sentence embeddings, making it suitable for understanding sentence-level semantics in news articles.
 
 We decided to focus only on BERT, since the project is meant to showcast the whole deployment cycle of a deep learning model and supporting different model classes would increase the amount of backend code tremendously.
 
-Nevertheless, model distillation is conducted to improve inference speed in context of the "scalable inference" chapter, using smaller pretrained architectures like DistilBert and Albert V2 and smaller finetuning layers. The notebook distillation.ipynb provides an overview over these architectures.
+Nevertheless, model distillation is conducted to improve inference speed in the context of the "scalable inference" chapter, using smaller pretrained architectures like DistilBert and Albert V2 and smaller finetuning layers. The notebook `distillation.ipynb` in the `notebooks/` folder provides an overview of these architectures.
 However, only BERT is currently deployed in the Cloud Run. Although, deploying a more efficient and well-performing DistilBert model would be straightforward in our setup.
 
 
 ## Project Organization
 
 ```
-├── LICENSE                <- Open-source license if one is chosen
-├── Makefile               <- Makefile with convenience commands like `make data` or `make train`
+├── LICENSE                <- Open-source license if one is chosen.
+├── Makefile               <- Makefile with convenience commands such as `make data` or `make train`.
 ├── README.md              <- The top-level README for developers using this project.
 ├── config                 <- Config folder for hydra usage.
 │   ├── cloud
@@ -64,7 +64,7 @@ However, only BERT is currently deployed in the Cloud Run. Although, deploying a
 │   ├── processed          <- The final, canonical data sets for modeling.
 │   └── raw                <- The original, immutable data dump.
 │  
-├── data.dvc               <- DVC folder to pull complete data folder from Google Cloud Bucket.
+├── data.dvc               <- DVC file to pull complete data folder from Google Cloud Bucket.
 ├── docker                 <- Containing all docker files.
 ├── docs                   <- Mkdocs project; see mkdocs.org for details.
 │

@@ -9,4 +9,4 @@ Build locally with:
 
 Serve locally with:
 
-    mkdocs serve
+    mkdocs serve -a 127.0.0.1:8081
