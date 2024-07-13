@@ -4,9 +4,12 @@
 Unit testing refers to the practice of writing test that tests individual parts of our code base to test for correctness. We use `Pytest` to test our code base. To locally check if our tests are passing, we type in a terminal `pytest tests/`. We measure the amount of code our tests cover with the package `coverage`. Then, we adapt the prompt to `coverage run -m pytest tests/`. To get a simple coverage report, type `coverage report` which will give us the percentage of cover in each of our files. By writing `coverage report -m`, we get the exact lines that were missed by our tests.
 
 ```bash
-pytest tests/       # check if tests are passing
-coverage report     # simple coverage report
-coverage report -m  # exact lines missed by tests
+pytest tests/                    # check if tests are passing
+```
+```bash
+coverage run -m pytest tests/    # alternative, checks also coverage
+coverage report                  # simple coverage report
+coverage report -m               # exact lines missed by tests
 ```
 
 ## GitHub actions
@@ -14,6 +17,7 @@ Each repository gets 2000 minutes of free testing per month. It is added in `.gi
 
 ## Code style
 We use `ruff` to check and re-format our code. The file `.github/workflows/codecheck.yaml` that also sets up a Python environment, installs the requirements and runs `ruff check .` and `ruff format .` which checks and formats the code according to certain Pep8 style guidelines, e.g. trimming white spacing.
+To fix error outputs type `ruff check . --fix`.
 
 ## Pre-commit
 Pre-commits can help us attach additional tasks that should be run every time that we do a `git commit`. Setup:
