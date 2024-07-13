@@ -2,6 +2,7 @@
 
 Make commands we implemented to run parts of our code.
 Benefits of using Makefile with hydra:
+
 - **Modularity**: Independent execution of setup, installation, and training steps.
 - **Consistency**: Uniform build and execution processes across environments.
 - **Efficiency**: Saves time by avoiding full recompilation.

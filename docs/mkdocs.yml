@@ -15,8 +15,10 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Setup: setup.md
+  - DVC: dvc.md
   - Makefile: makefile.md
-  - Data Version Control: dvc.md
   - Model training: run_local.md
+  - Inference: inference.md
   - Continuous Integration: ci.md
   - Docker: docker.md
+  - Monitoring: monitoring.md
