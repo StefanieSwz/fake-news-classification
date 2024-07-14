@@ -17,8 +17,9 @@ nav:
   - Setup: setup.md
   - DVC: dvc.md
   - Makefile: makefile.md
-  - Model training: run_local.md
+  - Model Training: run_local.md
   - Inference: inference.md
   - Continuous Integration: ci.md
   - Docker: docker.md
   - Monitoring: monitoring.md
+  - Scalable Applications: scalable_applications.md
