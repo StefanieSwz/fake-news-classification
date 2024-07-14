@@ -29,7 +29,12 @@ Generates artificial predict data, by default 200 instances which can be changed
 
 ### make train
 
+To train locally:
 `make train ARGS="train.local_data=True train.local_wandb=True"`
+
+To train without saving model in Wandb or GCS:
+`make train ARGS="cloud.save_best_model_gcs=False train.log_model=False"`
+
 
 Important configs:
 ```bash

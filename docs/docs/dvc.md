@@ -71,5 +71,8 @@ dvc add data/monitoring # or simply use the whole data folder again
 git add data/monitoring.dvc
 git commit -m "Add monitoring data to DVC"
 dvc push # This uploads the tracked monitoring data to our GCS bucket.
+
+# Download monitoring data
+gsutil -m cp -r "gs://mlops-lmu-data-bucket/data/monitoring" .
 ```
 This will change the default way that dvc handles data. Instead of just storing the latest version of the data as content-addressable storage it will now store the data as it looks in our local repository, which allows us to not only use dvc to download our data.

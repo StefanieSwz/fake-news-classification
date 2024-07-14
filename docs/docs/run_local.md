@@ -1,6 +1,10 @@
 # Model training
 
-We can train the model locally or in the Cloud. By default, if a model has a lower validation loss than the best model stored in GCS, it will be stored in GCS as best model. If a model should not be automatically be replaced by a newly trained model, set `make train ARGS="cloud.save_best_model_gcs=False"`. By default, the model also gets saved in the Artifact registry of Weights and Biases, to change the default and not save it, set `make train ARGS="train.log_model=False"`. If you want to train with hyperparameter optimization sweep, set `make train ARGS="train.sweep=True"`
+We can train the model locally or in the Cloud. By default, if a model has a lower validation loss than the best model stored in GCS, it will be stored in GCS as best model. If a model should not be automatically be replaced by a newly trained model, set `make train ARGS="cloud.save_best_model_gcs=False"`. By default, the model also gets saved in the Artifact registry of Weights and Biases, to change the default and not save it, set `make train ARGS="train.log_model=False"`. Therefore, for test runs if no model should be saved, type:
+
+`make train ARGS="cloud.save_best_model_gcs=False train.log_model=False"`.
+
+If you want to train with hyperparameter optimization sweep, set `make train ARGS="train.sweep=True"`
 
 ## Local training
 To train from local, we can make use of our Makefile and change the default hydra configuration as well. Training with defaults can be run with `make train`. Models are by default logged to wandb but not automatically saved to a local folder. Logging and model saving can be deactivated during training with the following commands:
