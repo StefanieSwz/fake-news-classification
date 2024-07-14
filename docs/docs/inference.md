@@ -35,7 +35,7 @@ The command to deploy a model from local would be:
 
 Important URLs of deployed models:
 
-- [Frontend](https://frontend-awan6kp5bq-ey.a.run.app/docs)
+- [Frontend](https://frontend-awan6kp5bq-ey.a.run.app)
 - [Backend](https://backend-awan6kp5bq-ey.a.run.app/docs)
 - [Monitoring](https://monitoring-awan6kp5bq-ey.a.run.app/docs)
 

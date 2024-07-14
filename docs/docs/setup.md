@@ -15,7 +15,7 @@ conda create -n mlops python=3.11 # OR: make create_environment
 conda activate mlops # OR: conda activate fake-news-classification
 pip install -r requirements.txt
 pip install nvgpu
-pip install -e .
+pip install -e .    # installs package located in root
 
 ```
 

@@ -45,6 +45,7 @@ gsutil cp <file> gs://<bucket-name> # upload a file to the cloud
 
 ### DVC in Google Cloud
 There are many reasons that you want to store your data in the cloud including:
+
 - Easily being able to share
 - Easily expand as you need more
 - Data is stored in multiple locations, making sure that it is not lost in case of an emergency
@@ -60,5 +61,15 @@ dvc remote modify remote_storage version_aware true          # support object ve
 # These commands changed .dvc/config, so commit that file, then
 dvc push --no-run-cache # push data to cloud without cache file
 dvc pull --no-run-cache # pull data without having to give credentials
+```
+Use `dvc pull --force` to pull data from GCS (overwrites existing data, therefore we need force).
+
+How to add new data:
+```bash
+# Add new folder by for example
+dvc add data/monitoring # or simply use the whole data folder again
+git add data/monitoring.dvc
+git commit -m "Add monitoring data to DVC"
+dvc push # This uploads the tracked monitoring data to our GCS bucket.
 ```
 This will change the default way that dvc handles data. Instead of just storing the latest version of the data as content-addressable storage it will now store the data as it looks in our local repository, which allows us to not only use dvc to download our data.

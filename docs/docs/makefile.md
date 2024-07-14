@@ -17,7 +17,7 @@ conda activate fake-news-classification
 ```
 ## Data
 ### make data
-Download data from Kaglle and save it in `data/raw/` folder (zipped or unzipped)
+Download data from Kaggle and save it in `data/raw/` folder (zipped or unzipped)
 
 ### make preprocess
 Preprocesses the data and preprocessed data gets stored in `data/processed/`.
