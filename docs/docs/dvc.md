@@ -4,7 +4,33 @@
 
 ```bash
 pip install dvc
-pip install
+pip install dvc-gdrive
+```
+
+When you are located in the root of your repository, initialize dvc:
+
+```bash
+dvc init
+dvc remote add -d storage gdrive://<your_identifier>
+```
+The identifier is the id that is used in the web address of our Google Drive folder.
+
+Commit the new files to your GitHub repository.
+
+###  How to use DVC - GDrive
+
+```bash
+dvc pull            # get the data folder from GDrive
+dvc add data/       # if you made changes in data/
+git add data.dvc    # stage file for github
+git commit -m "message"
+git tag -a "vx.x" -m "data vx.x"    # tag the data version
+dvc push            # upload changes to gdrive
+git push
+
+# For checking out a previous version of the data
+git checkout v1.0   # here you need the version tag
+dvc checkout
 ```
 
 ## How to setup dvc - Cloud
