@@ -14,6 +14,16 @@ We added SLO to the Cloud Run "backend" to check the latency of the response, re
 
 When we make predictions in your Inference App (wether deployed via Google Cloud or locally), we append all instances in a [monitoring_db.csv](https://console.cloud.google.com/storage/browser/_details/mlops-lmu-data-bucket/data/monitoring/monitoring_db.csv?pageState=(%22StorageObjectListTable%22:(%22f%22:%22%255B%255D%22))&project=mlops-fakenews&supportedpurview=organizationId,folder,project) in `mlops-lmu-data-bucket/monitoring`. This is our so called "current" data base. This is compared in the data drift reports with the "reference" data base, which is the predict.csv, a generated csv from our clean data set. You have the option to to set a filter of what instances of these data sets you want to include in the reports, you can either filter based on the time stamp or number of instances included. The default is to take the last 50 instances of both sets.
 
+### How to start the Monitoring Fast API
+
+- Deployed via Google Cloud: [Monitoring](https://monitoring-awan6kp5bq-ey.a.run.app/docs)
+
+- Deployed locally:
+
+```bash
+uvicorn fakenews.app.monitoring_app:app --reload --port 8002
+# open the port: http://127.0.0.1:8002/docs
+```
 
 ### Data Drift Report
 
